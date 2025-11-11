@@ -232,11 +232,15 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
                 New Log
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Daily Log</DialogTitle>
-                <DialogDescription>Record your daily activities and thoughts</DialogDescription>
+                <DialogDescription>
+                  Record your daily activities and thoughts
+                </DialogDescription>
               </DialogHeader>
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="log-title">Title</Label>
@@ -247,6 +251,7 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
                     placeholder="Today's achievements"
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="log-content">Content</Label>
                   <Textarea
@@ -257,6 +262,7 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
                     rows={6}
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="log-tags">Tags (comma-separated)</Label>
@@ -294,7 +300,13 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
                       }
                     }}
                   />
-                  {preview && <img src={preview} alt="Preview" className="w-full rounded-lg mt-2" />}
+                  {preview && (
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="w-full rounded-lg mt-2"
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -302,7 +314,9 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
                     type="checkbox"
                     id="log-public"
                     checked={newLog.is_public}
-                    onChange={(e) => setNewLog({ ...newLog, is_public: e.target.checked })}
+                    onChange={(e) =>
+                      setNewLog({ ...newLog, is_public: e.target.checked })
+                    }
                     className="rounded"
                   />
                   <Label htmlFor="log-public">Share with community</Label>
