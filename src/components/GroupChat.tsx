@@ -114,6 +114,14 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
   const typingTimeoutRef = useRef<number | null>(null);
   const emojiBtnRef = useRef<HTMLButtonElement | null>(null);
   const [emojiPortalPos, setEmojiPortalPos] = useState<{ left: number; top: number } | null>(null);
+  const emojiPortalRef = useRef<HTMLDivElement | null>(null);
+  
+  const emojiPopupRef = useRef<HTMLDivElement | null>(null);
+  const gifBtnRef = useRef<HTMLButtonElement | null>(null);
+  const gifPopupRef = useRef<HTMLDivElement | null>(null);
+  const [gifPortalPos, setGifPortalPos] = useState<{ left: number; top: number } | null>(null);
+
+
 
   /* ---------------- Fetchers ---------------- */
   const fetchMessages = useCallback(async () => {
@@ -130,10 +138,26 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
       }
       const enriched = await Promise.all(
         (data || []).map(async (m: any) => {
-          if (m.reply_to) {
-            const { data: replied } = await supabase.from("messages").select("id, content").eq("id", m.reply_to).single();
-            return { ...m, replied_message: replied || null };
-          }
+        if (m.reply_to) {
+          const { data: replied } = await supabase
+          .from("messages")
+          .select("id, content, profiles:profiles!fk_messages_profiles_user_id (username, full_name)")
+          .eq("id", m.reply_to)
+          .single();
+
+          return {
+            ...m,
+            replied_message: replied
+              ? {
+                  id: replied.id,
+                  content: replied.content,
+                  profiles: replied.profiles
+                    ? { username: replied.profiles.username, full_name: replied.profiles.full_name }
+                    : null,
+                }
+              : null,
+          };
+        }
           return m;
         })
       );
@@ -165,6 +189,32 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
       console.error("fetchUsers unexpected", err);
     }
   }, []);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+    // --- Emoji ---
+      const clickedInsideEmoji =
+        emojiPopupRef.current?.contains(target) ||
+        emojiBtnRef.current?.contains(target);
+
+    // --- GIF ---
+      const clickedInsideGif =
+        gifPopupRef.current?.contains(target) ||
+        gifBtnRef.current?.contains(target);
+
+    // If clicked outside both
+      if (!clickedInsideEmoji && !clickedInsideGif) {
+        setShowEmojiPopup(false);
+        setEmojiPortalPos(null);
+        setShowGifPopup(false);
+        setGifPortalPos(null);
+      }
+    };
+
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
 
   /* ---------------- Realtime ---------------- */
   useEffect(() => {
@@ -173,9 +223,15 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
 
     const channel = supabase
       .channel("public:messages")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => fetchMessages())
-      .on("postgres_changes", { event: "*", schema: "public", table: "typing" }, () => fetchTyping())
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => fetchUsers())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },  (payload) => {
+        setMessages(prev => [...prev, payload.new as Message]);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (payload) => {
+        setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+      })
       .subscribe();
 
     return () => {
@@ -327,9 +383,13 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
   };
 
   const toggleReaction = async (messageId: string, emoji: string) => {
-    const msg = messages.find((x) => x.id === messageId);
-    if (!msg) return;
-    const reactions = Array.isArray(msg.reactions) ? JSON.parse(JSON.stringify(msg.reactions)) : [];
+    const msgIndex = messages.findIndex((x) => x.id === messageId);
+    if (msgIndex === -1) return;
+
+    const updatedMessages = [...messages];
+    const msg = { ...updatedMessages[msgIndex] };
+    const reactions = Array.isArray(msg.reactions) ? [...msg.reactions] : [];
+
     const existing = reactions.find((r: any) => r.emoji === emoji);
     if (existing) {
       if (existing.user_ids.includes(userId)) {
@@ -344,16 +404,19 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
     } else {
       reactions.push({ emoji, user_ids: [userId] });
     }
+
+    // Update in Supabase
     const { error } = await supabase.from("messages").update({ reactions }).eq("id", messageId);
     if (error) {
       toast.error("Failed to react");
       return;
     }
-    fetchMessages();
-    console.log("Before update:", msg.reactions);
-    console.log("After toggle:", reactions);
-
+    // ✅ Update locally — no need to refetch
+    msg.reactions = reactions;
+    updatedMessages[msgIndex] = msg;
+    setMessages(updatedMessages); // <--- key line
   };
+
 
   const seenByNames = (seen_by?: string[]) => {
     if (!seen_by || seen_by.length === 0) return "No one";
@@ -502,7 +565,15 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
         </div>
       </div>
 
-      <Card className="shadow-card h-[700px] flex flex-col" style={{ background: "#f2f3f5" }}>
+      <Card
+        className="shadow-card h-[700px] flex flex-col bg-cover bg-center bg-no-repeat"
+        style={{
+        backgroundImage: "url('/src/assets/logo.png')",
+        backgroundColor: "#f2f3f5",
+        backgroundBlendMode: "overlay",
+        }}
+      >
+
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-6">
           {groupedWithDates().map((group) => (
             <div key={group.dateHeader}>
@@ -749,6 +820,7 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
                 {showEmojiPopup && emojiPortalPos &&
                   createPortal(
                     <div
+                      ref={emojiPortalRef}
                       className="fixed bg-white p-3 rounded-lg shadow-lg z-[999] grid grid-cols-6 gap-2 border border-gray-100"
                       style={{ left: emojiPortalPos.left, top: emojiPortalPos.top, maxWidth: 360 }}
                     >
@@ -768,6 +840,7 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
                     </div>,
                     document.body
                   )}
+
               </div>
 
               <div className="relative">
