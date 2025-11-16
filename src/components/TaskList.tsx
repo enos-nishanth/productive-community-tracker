@@ -168,7 +168,8 @@ const TaskList = ({ userId }: TaskListProps) => {
         // using ilike for title; description search could be added similarly
         // Supabase .or with ilike for multiple columns: wrap properly
         const term = `%${searchTerm}%`;
-        query = (query as any).or(`title.ilike.${term},description.ilike.${term}`);
+        // apply OR filter across title and description
+        query = query.or(`title.ilike.${term},description.ilike.${term}`);
       }
 
       const { data, error } = await query;
@@ -228,7 +229,7 @@ const TaskList = ({ userId }: TaskListProps) => {
         created_at: new Date().toISOString(),
       })
       .select("*")
-      .single()as any;
+      .single();
 
     if (error || !insertedTasks) {
       toast.error("Failed to create task");
@@ -616,7 +617,7 @@ const TaskList = ({ userId }: TaskListProps) => {
                     <Label>Priority</Label>
                     <Select
                       value={newTask.priority}
-                      onValueChange={(value: any) =>
+                      onValueChange={(value) =>
                         setNewTask((p) => ({ ...p, priority: value }))
                       }
                     >

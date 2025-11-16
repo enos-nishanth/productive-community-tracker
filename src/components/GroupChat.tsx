@@ -130,14 +130,15 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
         .from("messages")
         .select(`*, profiles:profiles!fk_messages_profiles_user_id (id, username, full_name)`)
         .order("created_at", { ascending: true });
-        console.log("Fetched messages:", data);
+        
       if (error) {
         console.error("fetchMessages error", error);
         toast.error("Failed to fetch messages");
         return;
       }
       const enriched = await Promise.all(
-        (data || []).map(async (m: any) => {
+        (data || []).map(async (m) => {
+        const base = m as unknown as Message;
         if (m.reply_to) {
           const { data: replied } = await supabase
           .from("messages")
@@ -146,19 +147,19 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
           .single();
 
           return {
-            ...m,
+            ...base,
             replied_message: replied
               ? {
-                  id: replied.id,
-                  content: replied.content,
-                  profiles: replied.profiles
-                    ? { username: replied.profiles.username, full_name: replied.profiles.full_name }
-                    : null,
-                }
+                id: replied.id,
+                content: replied.content,
+                profiles: replied.profiles
+                  ? { username: replied.profiles.username, full_name: replied.profiles.full_name }
+                  : null,
+              }
               : null,
           };
         }
-          return m;
+          return base;
         })
       );
       setMessages(enriched as Message[]);
@@ -178,9 +179,9 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
       setUsers(data || []);
       // optional online status
       try {
-        const { data: statusData } = await supabase.from("user_status").select("user_id, online").in("user_id", (data || []).map((d: any) => d.id));
+      const { data: statusData } = await supabase.from("user_status").select("user_id, online").in("user_id", (data || []).map((d) => (d as { id: string }).id));
         const map: Record<string, boolean> = {};
-        (statusData || []).forEach((r: any) => (map[r.user_id] = !!r.online));
+        (statusData || []).forEach((r: { user_id: string; online: boolean | null }) => (map[r.user_id] = !!r.online));
         setOnlineMap(map);
       } catch {
         // ignore
@@ -260,7 +261,7 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
     try {
       const { data } = await supabase.from("typing").select("user_id, last_typing_at");
       const map: Record<string, number> = {};
-      (data || []).forEach((r: any) => {
+      (data || []).forEach((r: { user_id: string; last_typing_at: string | null }) => {
         if (r.last_typing_at) map[r.user_id] = new Date(r.last_typing_at).getTime();
       });
       setTypingUsersMap(map);
@@ -388,14 +389,15 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
 
     const updatedMessages = [...messages];
     const msg = { ...updatedMessages[msgIndex] };
-    const reactions = Array.isArray(msg.reactions) ? [...msg.reactions] : [];
+    type Reaction = { emoji: string; user_ids: string[] };
+    const reactions: Reaction[] = Array.isArray(msg.reactions) ? [...(msg.reactions as Reaction[])] : [];
 
-    const existing = reactions.find((r: any) => r.emoji === emoji);
+    const existing = reactions.find((r) => r.emoji === emoji);
     if (existing) {
       if (existing.user_ids.includes(userId)) {
         existing.user_ids = existing.user_ids.filter((id: string) => id !== userId);
         if (existing.user_ids.length === 0) {
-          const idx = reactions.findIndex((r: any) => r.emoji === emoji);
+          const idx = reactions.findIndex((r) => r.emoji === emoji);
           if (idx >= 0) reactions.splice(idx, 1);
         }
       } else {
@@ -451,7 +453,7 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
       const json = await res.json();
       console.log("Response JSON:", json);
 
-      const results = (json.results || []).map((r: any) => {
+      const results = (json.results || []).map((r: { id: string; media_formats?: { gif?: { url?: string }; mediumgif?: { url?: string }; tinygif?: { url?: string } } }) => {
         // Prefer gif, mediumgif, tinygif
         const url = r.media_formats?.gif?.url || r.media_formats?.mediumgif?.url || r.media_formats?.tinygif?.url;
         return { id: r.id, url };
@@ -461,9 +463,10 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
       if ((results.filter((r) => r.url)).length === 0) {
         setGifError("No GIFs found for that search.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("searchGifs error", err);
-      setGifError(err?.message || "Failed to fetch GIFs");
+      const msg = err instanceof Error ? err.message : "Failed to fetch GIFs";
+      setGifError(msg);
       setGifResults([]);
     } finally {
       setGifLoading(false);
@@ -660,7 +663,7 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
                             )}
 
                             <div className="mt-2 flex gap-2 items-center">
-                              {(message.reactions || []).map((r: any) => (
+                              {(message.reactions || []).map((r: { emoji: string; user_ids: string[] }) => (
                                 <button
                                   key={r.emoji}
                                   className={`px-2 py-1 rounded-full text-sm border ${r.user_ids?.includes(userId) ? "bg-black/10" : "bg-gray-100"}`}
@@ -789,7 +792,7 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
           <div className="flex gap-2 items-end">
             <input
               key={fileInputKey}
-              ref={fileInputRef as any}
+              ref={fileInputRef}
               type="file"
               className="hidden"
               onChange={(e) => {

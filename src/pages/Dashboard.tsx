@@ -6,17 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Sparkles, Target, BookOpen, Users, TrendingUp } from "lucide-react";
+import { LogOut, Sparkles, Target, BookOpen, Users, TrendingUp, BarChart2, Trophy } from "lucide-react";
 import TaskList from "@/components/TaskList";
 import DailyLogsList from "@/components/DailyLogsList";
 import BlogFeed from "@/components/BlogFeed";
 import GroupChat from "@/components/GroupChat";
 import logo from "@/assets/logo.png";
+import { WeeklyReportEmbedded } from "@/pages/WeeklyReport";
+import { LeaderboardEmbedded } from "@/pages/Leaderboard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [stats, setStats] = useState({
     tasks: 0,
     logs: 0,
@@ -89,6 +92,18 @@ const Dashboard = () => {
 
     fetchProfile();
     fetchStats();
+
+    const checkRole = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      setIsAdmin(data?.role === "admin");
+    };
+    checkRole();
 
     // Subscribe to profile changes (points, streak updates)
     const profileChannel = supabase
@@ -256,11 +271,13 @@ const Dashboard = () => {
 
         {/* Tabs Content */}
         <Tabs defaultValue="tasks" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="logs">Daily Logs</TabsTrigger>
             <TabsTrigger value="blog">Community</TabsTrigger>
             <TabsTrigger value="chat">Group Chat</TabsTrigger>
+            <TabsTrigger value="weekly">Weekly Report</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tasks" className="animate-fade-in">
@@ -277,6 +294,22 @@ const Dashboard = () => {
 
           <TabsContent value="chat" className="animate-fade-in">
             <GroupChat userId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="weekly" className="animate-fade-in">
+            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+              <BarChart2 className="h-4 w-4" />
+              Weekly report loads when admin publishes data.
+            </div>
+            <WeeklyReportEmbedded userId={user.id} isAdmin={isAdmin} />
+          </TabsContent>
+
+          <TabsContent value="leaderboard" className="animate-fade-in">
+            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+              <Trophy className="h-4 w-4" />
+              Live ranking by points.
+            </div>
+            <LeaderboardEmbedded />
           </TabsContent>
         </Tabs>
       </main>

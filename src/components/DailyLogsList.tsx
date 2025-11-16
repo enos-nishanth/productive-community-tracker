@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,11 +43,7 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchLogs();
-  }, [userId]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     const { data, error } = await supabase
       .from("daily_logs")
       .select("*")
@@ -60,7 +56,13 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
     }
 
     setLogs(data || []);
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  
 
   const handleCreateLog = async () => {
     if (isPublishing) return;

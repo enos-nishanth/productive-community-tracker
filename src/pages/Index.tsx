@@ -39,6 +39,14 @@ const Index = () => {
             >
               Sign In
             </Button>
+            {/* <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => navigate("/admin")}
+              className="bg-white/20 text-white hover:bg-white/30"
+            >
+              Admin
+            </Button> */}
           </div>
         </div>
 

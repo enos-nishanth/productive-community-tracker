@@ -64,21 +64,34 @@ const BlogFeed = ({ userId }: BlogFeedProps) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [postComments, setPostComments] = useState<Record<string, any[]>>({});
+  type PostComment = BlogPost["comments"][number];
+  const [postComments, setPostComments] = useState<Record<string, PostComment[]>>({});
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
+  const fetchLikedPosts = useCallback(async () => {
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", userId);
+    if (error) {
+      console.error("Failed to fetch liked posts:", error);
+      return;
+    }
+    const likedIds = new Set((data || []).map((item) => item.post_id as string));
+    setLikedPosts(likedIds);
+  }, [userId]);
+
   useEffect(() => {
-    fetchPosts();
     fetchLikedPosts();
-  }, []);
+  }, [fetchLikedPosts]);
   // 🔍 Debounced search effect
   useEffect(() => {
     const delay = setTimeout(() => {
-      fetchPosts(0, searchTerm); 
-    }, 500); 
-
+      fetchPosts(0, searchTerm);
+    }, 500);
     return () => clearTimeout(delay);
-  }, [searchTerm]);
+  }, [searchTerm, fetchPosts]);
 
 
   // 🔹 Fetch posts from Supabase (with comments)
@@ -236,26 +249,8 @@ const BlogFeed = ({ userId }: BlogFeedProps) => {
       return;
     }
 
-    setPostComments((prev) => ({ ...prev, [postId]: data }));
+    setPostComments((prev) => ({ ...prev, [postId]: (data || []) as PostComment[] }));
   };
-
-const fetchLikedPosts = async () => {
-  if (!userId) return;
-
-  const { data, error } = await supabase
-    .from("likes")
-    .select("post_id")
-    .eq("user_id", userId);
-
-  if (error) {
-    console.error("Failed to fetch liked posts:", error);
-    return;
-  }
-
-  // Store liked post IDs in a Set for fast lookup
-  const likedIds = new Set(data.map((item) => item.post_id));
-  setLikedPosts(likedIds);
-};
 
   // 🔹 Like functionality
   const handleLike = async (postId: string) => {
