@@ -85,13 +85,6 @@ const BlogFeed = ({ userId }: BlogFeedProps) => {
   useEffect(() => {
     fetchLikedPosts();
   }, [fetchLikedPosts]);
-  // 🔍 Debounced search effect
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchPosts(0, searchTerm);
-    }, 500);
-    return () => clearTimeout(delay);
-  }, [searchTerm, fetchPosts]);
 
 
   // 🔹 Fetch posts from Supabase (with comments)
@@ -141,6 +134,20 @@ const BlogFeed = ({ userId }: BlogFeedProps) => {
   setPage(pageNum + 1);
   setLoadingMore(false);
 }, [loadingMore, hasMore]);
+
+  // initial load after callbacks exist
+  useEffect(() => {
+    fetchPosts(0, searchTerm);
+    fetchLikedPosts();
+  }, [fetchPosts, fetchLikedPosts, searchTerm]);
+
+  // 🔍 Debounced search effect (after fetchPosts defined)
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchPosts(0, searchTerm);
+    }, 500);
+    return () => clearTimeout(delay);
+  }, [searchTerm, fetchPosts]);
   
   // 🔹 Upload image or video to Supabase Storage
   const uploadImage = async () => {

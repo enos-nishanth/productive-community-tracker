@@ -55,3 +55,48 @@ create policy weekly_reports_admin_update on public.weekly_reports for update
       where ur.user_id = auth.uid() and ur.role = 'admin'
     )
   );
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  content text not null,
+  image_url text,
+  pinned boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table public.announcements enable row level security;
+
+create policy announcements_read_all on public.announcements for select using (true);
+create policy announcements_admin_write on public.announcements for insert with check (
+  exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.role = 'admin')
+);
+create policy announcements_admin_update on public.announcements for update using (
+  exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.role = 'admin')
+) with check (
+  exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.role = 'admin')
+);
+
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  start timestamptz not null,
+  end timestamptz not null,
+  all_day boolean default false,
+  location text,
+  created_by uuid references public.profiles(id),
+  google_event_id text
+);
+
+alter table public.events enable row level security;
+
+create policy events_read_all on public.events for select using (true);
+create policy events_admin_write on public.events for insert with check (
+  exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.role = 'admin')
+);
+create policy events_admin_update on public.events for update using (
+  exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.role = 'admin')
+) with check (
+  exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.role = 'admin')
+);

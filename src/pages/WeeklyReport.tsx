@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,20 +12,8 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { toast } from "sonner";
 
-type Report = {
-  id: string;
-  user_id: string;
-  week_start: string;
-  week_end: string | null;
-  summary: string | null;
-  achievements: string[] | null;
-  improvements: string[] | null;
-  points_gained: number | null;
-  tasks_completed_count: number | null;
-  logs_count: number | null;
-  suggestions: string[] | null;
-  goals_next_week: string[] | null;
-};
+type Report = Database["public"]["Tables"]["weekly_reports"]["Row"];
+
 
 const WeeklyReportPage = () => {
   const navigate = useNavigate();
@@ -74,7 +63,7 @@ const WeeklyReportPage = () => {
       setReports([]);
       return;
     }
-    setReports((res.data || []) as Report[]);
+    setReports(res.data ?? []);
   };
 
   useEffect(() => {

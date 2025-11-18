@@ -37,6 +37,9 @@ const Admin = () => {
   const [recentModalFor, setRecentModalFor] = useState<string | null>(null);
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentData, setRecentData] = useState<Record<string, { tasks: any[]; logs: any[]; posts: any[]; messages: any[] }>>({});
+  const [announceOpen, setAnnounceOpen] = useState(false);
+  const [announceForm, setAnnounceForm] = useState({ title: "", content: "", pinned: false });
+  const [announceImage, setAnnounceImage] = useState<File | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -72,7 +75,9 @@ const Admin = () => {
   }, [user, navigate]);
 
   const fetchSummary = async () => {
-    const rpc = await supabase.rpc("get_user_activity_summary", {});
+    // Fallback: the RPC "get_user_activity_summary" is not registered in Supabase,
+    // so we skip it and proceed with the manual aggregation below.
+    const rpc = { data: null, error: { message: "RPC not available" } };
     if (!rpc.error && rpc.data) {
       const base = rpc.data as SummaryRow[];
       const rolesRes = await supabase.from("user_roles").select("user_id, role");
@@ -195,7 +200,7 @@ const Admin = () => {
   };
 
   const resetStreak = async (uid: string) => {
-    const rpc = await supabase.rpc("reset_streak", { p_user_id: uid });
+    const rpc = await supabase.rpc("reset_streak", { p_user_id: uid } as any);
     if (rpc.error) {
       const upd = await supabase.from("profiles").update({ streak: 0 }).eq("id", uid);
       if (upd.error) {
@@ -208,7 +213,7 @@ const Admin = () => {
   };
 
   const resetPoints = async (uid: string) => {
-    const rpc = await supabase.rpc("reset_points", { p_user_id: uid });
+    const rpc = await supabase.rpc("reset_points", { user_id: uid });
     if (rpc.error) {
       const upd = await supabase.from("profiles").update({ points: 0 }).eq("id", uid);
       if (upd.error) {
@@ -291,6 +296,47 @@ const Admin = () => {
           <div className="flex gap-2">
             <Input placeholder="Search users" value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
             <Button variant="outline" onClick={fetchSummary}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
+            <Dialog open={announceOpen} onOpenChange={setAnnounceOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary text-primary-foreground">New Announcement</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>Compose Announcement</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <Input placeholder="Title" value={announceForm.title} onChange={e => setAnnounceForm({ ...announceForm, title: e.target.value })} />
+                  <Textarea placeholder="Content" value={announceForm.content} onChange={e => setAnnounceForm({ ...announceForm, content: e.target.value })} rows={6} />
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="pin" checked={announceForm.pinned} onChange={(e) => setAnnounceForm({ ...announceForm, pinned: e.target.checked })} />
+                    <label htmlFor="pin" className="text-sm">Pin to top</label>
+                  </div>
+                  <Input type="file" accept="image/*" onChange={(e) => setAnnounceImage(e.target.files?.[0] || null)} />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setAnnounceOpen(false)}>Cancel</Button>
+                    <Button onClick={async () => {
+                      if (!announceForm.title.trim() || !announceForm.content.trim()) { toast.error("Enter title and content"); return; }
+                      let imageUrl: string | null = null;
+                      if (announceImage) {
+                        const sanitized = announceImage.name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "_");
+                        const path = `announcements/${Date.now()}_${sanitized}`;
+                        const { data, error } = await supabase.storage.from("post-images").upload(path, announceImage);
+                        if (!error) {
+                          const { data: url } = supabase.storage.from("post-images").getPublicUrl(data.path);
+                          imageUrl = url?.publicUrl || null;
+                        }
+                      }
+                      const { error: insErr } = await supabase.from("announcements").insert({ user_id: user?.id as string, title: announceForm.title.trim(), content: announceForm.content.trim(), image_url: imageUrl, pinned: announceForm.pinned });
+                      if (insErr) { toast.error("Failed to post announcement"); return; }
+                      toast.success("Announcement posted");
+                      setAnnounceOpen(false);
+                      setAnnounceForm({ title: "", content: "", pinned: false });
+                      setAnnounceImage(null);
+                    }}>Post</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </header>
