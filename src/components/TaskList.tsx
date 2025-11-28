@@ -94,10 +94,19 @@ const TaskList = ({ userId }: TaskListProps) => {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
-  const [newTask, setNewTask] = useState({
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  type Priority = "high" | "medium" | "low";
+
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    priority: Priority;
+    deadline: string;
+    is_public: boolean;
+  }>({
     title: "",
     description: "",
-    priority: "medium" as const,
+    priority: "medium",
     deadline: "",
     is_public: false,
   });
@@ -210,8 +219,12 @@ const TaskList = ({ userId }: TaskListProps) => {
 
   // create a new task + optionally create public post
   const handleCreateTask = async () => {
+    if (isCreatingTask) return;  // prevent double click
+    setIsCreatingTask(true);
+
     if (!newTask.title.trim()) {
       toast.error("Please enter a task title");
+      setIsCreatingTask(false);
       return;
     }
 
@@ -233,8 +246,14 @@ const TaskList = ({ userId }: TaskListProps) => {
 
     if (error || !insertedTasks) {
       toast.error("Failed to create task");
+      setIsCreatingTask(false);
       return;
     }
+
+    toast.success("Task created!");
+
+    setIsCreatingTask(false);
+    setIsDialogOpen(false);
 
     // if public, create community post (link back with task_id)
     if (newTask.is_public) {
@@ -618,7 +637,7 @@ const TaskList = ({ userId }: TaskListProps) => {
                     <Select
                       value={newTask.priority}
                       onValueChange={(value) =>
-                        setNewTask((p) => ({ ...p, priority: value }))
+                        setNewTask((p) => ({ ...p, priority: value as "high" | "medium" | "low" }))
                       }
                     >
                       <SelectTrigger>
@@ -657,9 +676,10 @@ const TaskList = ({ userId }: TaskListProps) => {
                   <Label htmlFor="public">Make task public for accountability</Label>
                 </div>
 
-                <Button className="w-full" onClick={handleCreateTask}>
-                  Create Task
+                <Button className="w-full" disabled={isCreatingTask} onClick={handleCreateTask}>
+                  {isCreatingTask ? "Creating..." : "Create Task"}
                 </Button>
+
               </div>
             </DialogContent>
           </Dialog>
