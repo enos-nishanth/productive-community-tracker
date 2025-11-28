@@ -214,57 +214,133 @@ const Dashboard = () => {
   }
 
   return (
-    <SidebarProvider>
+  <SidebarProvider>
+    <div className="flex min-h-screen w-full">
+
+      {/* SIDEBAR (desktop + mobile drawer) */}
       <Sidebar side="left" collapsible="icon">
-        <SidebarHeader className="border-b">
-          <div className="flex items-center gap-2 px-1 py-1">
-            <SidebarTrigger />
-          </div>
+        <SidebarHeader className="border-b px-3 py-2 font-semibold text-lg">
+          Menu
         </SidebarHeader>
+
         <SidebarContent>
           <SidebarMenu>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="tasks"} onClick={() => setSection("tasks")}><Target /> <span>Tasks</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "tasks"}
+                onClick={() => setSection("tasks")}
+              >
+                <Target />
+                <span>Tasks</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="logs"} onClick={() => setSection("logs")}><BookOpen /> <span>Daily Logs</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "logs"}
+                onClick={() => setSection("logs")}
+              >
+                <BookOpen />
+                <span>Daily Logs</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="community"} onClick={() => setSection("community")}><Users /> <span>Community</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "community"}
+                onClick={() => setSection("community")}
+              >
+                <Users />
+                <span>Community</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="chat"} onClick={() => setSection("chat")}><MessageSquare /> <span>Group Chat</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "chat"}
+                onClick={() => setSection("chat")}
+              >
+                <MessageSquare />
+                <span>Group Chat</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="weekly"} onClick={() => setSection("weekly")}><BarChart2 /> <span>Weekly Report</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "weekly"}
+                onClick={() => setSection("weekly")}
+              >
+                <BarChart2 />
+                <span>Weekly Report</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="leaderboard"} onClick={() => setSection("leaderboard")}><Trophy /> <span>Leaderboard</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "leaderboard"}
+                onClick={() => setSection("leaderboard")}
+              >
+                <Trophy />
+                <span>Leaderboard</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="announcements"} onClick={() => setSection("announcements")}><Megaphone /> <span>Announcements</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "announcements"}
+                onClick={() => setSection("announcements")}
+              >
+                <Megaphone />
+                <span>Announcements</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
-              <SidebarMenuButton isActive={section==="calendar"} onClick={() => setSection("calendar")}><CalendarDays /> <span>Calendar</span></SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={section === "calendar"}
+                onClick={() => setSection("calendar")}
+              >
+                <CalendarDays />
+                <span>Calendar</span>
+              </SidebarMenuButton>
             </SidebarMenuItem>
+
           </SidebarMenu>
         </SidebarContent>
+
         <SidebarRail />
       </Sidebar>
-      <SidebarInset>
-        <header className="border-b bg-card shadow-card">
+
+      {/* MAIN CONTENT */}
+      <SidebarInset className="flex-1">
+
+        {/* HEADER */}
+        <header className="border-b bg-card shadow-card sticky top-0 z-20">
           <div className="px-4 py-4 flex justify-between items-center">
+
+            {/* MOBILE MENU BUTTON HERE (MUST BE OUTSIDE SIDEBAR) */}
+            <SidebarTrigger className="md:hidden mr-2" />
+
             <div className="flex items-center gap-3">
               <img src={logo} alt="Logo" className="h-8 w-auto" />
-              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">Valai Veecee Meen Pidipom</h1>
+              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Valai Veecee Meen Pidipom
+              </h1>
             </div>
+
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm font-medium">{profile.username}</p>
-                <p className="text-xs text-muted-foreground">🔥 {profile.streak} day streak | ⭐ {profile.points} points</p>
+                <p className="text-xs text-muted-foreground">
+                  🔥 {profile.streak} day streak | ⭐ {profile.points} points
+                </p>
               </div>
-              <Button variant="outline" size="icon" onClick={handleSignOut}><LogOut className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
+
           </div>
         </header>
         <main className="px-4 py-8">
@@ -342,6 +418,7 @@ const Dashboard = () => {
         {section === "calendar" && <CalendarPage userId={user.id} />}
         </main>
       </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 };

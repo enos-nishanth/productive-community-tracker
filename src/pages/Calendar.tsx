@@ -28,7 +28,7 @@ const CalendarPage = ({ userId }: { userId: string }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [openCreate, setOpenCreate] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", start: "", end: "", all_day: false, location: "" });
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const checkRole = async () => {
@@ -58,52 +58,32 @@ const CalendarPage = ({ userId }: { userId: string }) => {
   };
 
   useEffect(() => {
-    fetchEvents(selectedDate);
-    const chan = supabase
-      .channel("events")
-      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => fetchEvents(selectedDate))
-      .subscribe();
-    return () => supabase.removeChannel(chan);
-  }, [selectedDate]);
+    fetchEvents(selectedDate); // ✅ load on mount + when date changes
 
-  const connectGoogle = async () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-    if (!clientId) {
-      toast.error("Google client ID not configured");
-      return;
-    }
-    const redirectUri = window.location.origin + "/dashboard";
-    const scope = encodeURIComponent("https://www.googleapis.com/auth/calendar");
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${scope}&prompt=consent`;
-    const w = window.open(authUrl, "google_oauth", "width=600,height=700");
-    const timer = setInterval(() => {
-      try {
-        if (!w || w.closed) {
-          clearInterval(timer);
-          return;
-        }
-        const hash = w.location.hash;
-        if (hash && hash.includes("access_token")) {
-          const params = new URLSearchParams(hash.slice(1));
-          const token = params.get("access_token");
-          if (token) {
-            setGoogleToken(token);
-            toast.success("Google connected");
-            w.close();
-            clearInterval(timer);
-          }
-        }
-      } catch {}
-    }, 500);
-  };
+      const channel = supabase
+        .channel("events")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "events" },
+          () => fetchEvents(selectedDate) // realtime refresh
+        )
+        .subscribe();
 
-  const createEvent = async () => {
-    if (!form.title.trim()) {
+      return () => {
+        channel.unsubscribe(); // sync cleanup
+      };
+    }, [selectedDate]);
+
+    const createEvent = async () => {
+      if (!form.title.trim()) {
       toast.error("Enter title");
       return;
     }
-    const startIso = form.start || (selectedDate ? new Date(selectedDate.setHours(9, 0, 0, 0)).toISOString() : new Date().toISOString());
-    const endIso = form.end || (selectedDate ? new Date(selectedDate.setHours(10, 0, 0, 0)).toISOString() : new Date().toISOString());
+
+  
+    const startIso = form.start;
+    const endIso = form.end;
+
     const { data, error } = await supabase.from("events").insert({
       title: form.title.trim(),
       description: form.description.trim() || null,
@@ -113,31 +93,18 @@ const CalendarPage = ({ userId }: { userId: string }) => {
       location: form.location.trim() || null,
       created_by: userId,
     }).select("*").single();
+
     if (error) {
       toast.error("Failed to create event");
       return;
     }
-    const row = data as EventRow;
-    if (googleToken) {
-      try {
-        const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID as string | undefined;
-        const body = { summary: row.title, description: row.description || undefined, start: { dateTime: row.start }, end: { dateTime: row.end }, location: row.location || undefined };
-        const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId || "primary")}/events`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${googleToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = await res.json();
-        if (json.id) {
-          await supabase.from("events").update({ google_event_id: json.id }).eq("id", row.id);
-        }
-      } catch {}
-    }
+
     toast.success("Event created");
     setOpenCreate(false);
-    setForm({ title: "", description: "", start: "", end: "", all_day: false, location: "" });
+    setForm({ title: "", description: "", start: "", end: "", all_day: false, location:  "" });
     fetchEvents(selectedDate);
   };
+
 
   const eventsOnSelected = useMemo(() => {
     if (!selectedDate) return [] as EventRow[];
@@ -153,7 +120,6 @@ const CalendarPage = ({ userId }: { userId: string }) => {
           <h2 className="text-xl font-bold">Calendar</h2>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => connectGoogle()}>Connect Google</Button>
           {isAdmin && (
             <Dialog open={openCreate} onOpenChange={setOpenCreate}>
               <DialogTrigger asChild>

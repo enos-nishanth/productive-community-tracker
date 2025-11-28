@@ -194,17 +194,17 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
 
-    // --- Emoji ---
+      // --- Emoji ---
       const clickedInsideEmoji =
-        emojiPopupRef.current?.contains(target) ||
+        emojiPortalRef.current?.contains(target) ||
         emojiBtnRef.current?.contains(target);
 
-    // --- GIF ---
+      // --- GIF ---
       const clickedInsideGif =
         gifPopupRef.current?.contains(target) ||
         gifBtnRef.current?.contains(target);
 
-    // If clicked outside both
+      // If clicked outside both
       if (!clickedInsideEmoji && !clickedInsideGif) {
         setShowEmojiPopup(false);
         setEmojiPortalPos(null);
@@ -213,9 +213,10 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
       }
     };
 
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => document.removeEventListener("mousedown", handleClickOutside);
-}, []);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
 
   /* ---------------- Realtime ---------------- */
   useEffect(() => {
@@ -666,12 +667,16 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
                               {(message.reactions || []).map((r: { emoji: string; user_ids: string[] }) => (
                                 <button
                                   key={r.emoji}
-                                  className={`px-2 py-1 rounded-full text-sm border ${r.user_ids?.includes(userId) ? "bg-black/10" : "bg-gray-100"}`}
+                                  className={`px-2 py-1 rounded-full text-sm border ${
+                                    r.user_ids?.includes(userId)
+                                    ? "bg-black/10 text-black"
+                                    : "bg-transparent text-black"
+                                  } flex items-center gap-1`}
                                   onClick={() => toggleReaction(message.id, r.emoji)}
                                   title={`${r.user_ids?.length || 0} reactions`}
                                 >
-                                  <span className="mr-1">{r.emoji}</span>
-                                  <span className="text-xs">{r.user_ids?.length || 0}</span>
+                                  <span className="mr-0.5">{r.emoji}</span>
+                                  <span className="text-xs text-black">{r.user_ids?.length || 0}</span>
                                 </button>
                               ))}
                             </div>
@@ -683,9 +688,14 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
                           <div className="flex flex-col items-center gap-1">
                             <Popover>
                               <PopoverTrigger asChild>
-                                <button className="p-1 rounded-full bg-black shadow-sm hover:scale-105 transition" title="More">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 rounded-full hover:bg-muted"
+                                  title="More"
+                                >
+                                  <MoreHorizontal className="h-4 w-4 text-black" />
+                                </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-56 p-2">
                                 <PopupCard>
@@ -852,7 +862,10 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
                 </button>
 
                 {showGifPopup && (
-                  <div className="absolute bottom-12 left-0 bg-white rounded-md shadow p-3 w-96 z-50">
+                  <div
+                    ref={gifPopupRef}
+                    className="absolute bottom-12 left-0 bg-white rounded-md shadow p-3 w-96 z-50"
+                  >
                     <div className="flex gap-2 mb-2">
                       <input
                         className="flex-1 border rounded px-2 py-1"
