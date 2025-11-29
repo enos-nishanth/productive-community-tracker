@@ -213,17 +213,26 @@ const Admin = () => {
   };
 
   const resetPoints = async (uid: string) => {
-    const rpc = await supabase.rpc("reset_points", { user_id: uid });
-    if (rpc.error) {
-      const upd = await supabase.from("profiles").update({ points: 0 }).eq("id", uid);
-      if (upd.error) {
+    const { error: rpcError } = await supabase.rpc("reset_points", {
+      user_id: uid
+    });
+
+    if (rpcError) {
+      const { error: updError } = await supabase
+        .from("profiles")
+        .update({ points: 0 })
+        .eq("id", uid);
+
+      if (updError) {
         toast.error("Failed to reset points");
         return;
       }
     }
+
     toast.success("Points reset");
     fetchSummary();
   };
+
 
   const makeAdmin = async (uid: string) => {
     const res = await supabase
