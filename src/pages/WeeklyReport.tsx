@@ -6,8 +6,8 @@ import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Target, ListChecks, Flame } from "lucide-react";
-import { Select } from "@/components/ui/select";
+import { Trophy, Target, ListChecks, Flame, Users, CalendarDays, BarChart3, ChevronDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { toast } from "sonner";
@@ -77,136 +77,184 @@ const WeeklyReportPage = () => {
   const pointsSeries = useMemo(() => reports.slice().reverse().map(r => ({ week: r.week_start, Points: r.points_gained || 0 })), [reports]);
   const workSeries = useMemo(() => [{ name: "This Week", Tasks: latest?.tasks_completed_count || 0, Logs: latest?.logs_count || 0 }], [latest]);
 
+  const currentProfile = useMemo(() => profiles.find(p => p.id === userIdFilter)?.username || "User", [profiles, userIdFilter]);
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-card">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Weekly Report</h1>
-          {isAdmin ? (
-            <select className="border rounded px-2 py-1" value={userIdFilter || ""} onChange={e => setUserIdFilter(e.target.value)}>
-              {profiles.map(p => (
-                <option key={p.id} value={p.id}>{p.username}</option>
-              ))}
-            </select>
+      <header className="border-b bg-card shadow-sm">
+        <div className="container mx-auto px-4 py-4 max-w-6xl flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold tracking-tight">Weekly Report Dashboard</h1>
+          </div>
+          {isAdmin && profiles.length > 0 ? (
+            <Select value={userIdFilter || ""} onValueChange={setUserIdFilter}>
+              <SelectTrigger className="w-[180px] h-9">
+                <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Select User" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.username}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : null}
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 space-y-6">
+      
+      <main className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
         {!latest ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No weekly data</CardTitle>
-            </CardHeader>
+          <Card className="shadow-lg border-dashed">
+            <CardHeader><CardTitle>No Weekly Data for {currentProfile}</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground">Your weekly report appears once the admin adds it.</div>
+              <div className="text-sm text-muted-foreground">The weekly report for this user is not yet available.</div>
             </CardContent>
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="shadow-card">
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Trophy className="h-4 w-4 text-yellow-500" /> Points Gained</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{latest.points_gained || 0}</div>
-                  <Progress value={Math.min(100, (latest.points_gained || 0))} className="mt-2" />
+            <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" />
+                Latest Report: Week starting {latest.week_start}
+            </div>
+            
+            {/* Key Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-4 flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Points Gained</span>
+                        <div className="p-1.5 bg-yellow-500/10 rounded-lg text-yellow-600">
+                            <Trophy className="h-4 w-4" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-extrabold mt-3">{latest.points_gained || 0}</div>
+                    <Progress value={Math.min(100, (latest.points_gained || 0))} className="mt-3 h-2" />
                 </CardContent>
               </Card>
-              <Card className="shadow-card">
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> Tasks Completed</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{latest.tasks_completed_count || 0}</div>
+              
+              <Card className="shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-4 flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Tasks Completed</span>
+                        <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                            <Target className="h-4 w-4" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-extrabold mt-3">{latest.tasks_completed_count || 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Total in week</div>
                 </CardContent>
               </Card>
-              <Card className="shadow-card">
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><ListChecks className="h-4 w-4 text-secondary" /> Logs</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{latest.logs_count || 0}</div>
+              
+              <Card className="shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-4 flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Logs Submitted</span>
+                        <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600">
+                            <ListChecks className="h-4 w-4" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-extrabold mt-3">{latest.logs_count || 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Daily records</div>
                 </CardContent>
               </Card>
-              <Card className="shadow-card">
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Flame className="h-4 w-4 text-orange-500" /> Highlights</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {(latest.achievements || []).slice(0, 3).map((a, i) => (
-                      <Badge key={i} variant="outline">{a}</Badge>
-                    ))}
-                  </div>
+              
+              <Card className="shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-4 flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Top Achievements</span>
+                        <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600">
+                            <Flame className="h-4 w-4" />
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                        {(latest.achievements || []).slice(0, 3).map((a, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                                {a.split(' ')[0]}
+                            </Badge>
+                        ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">{latest.achievements?.length || 0} achievements total</div>
                 </CardContent>
               </Card>
             </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-sm">Week starting {latest.week_start}</div>
-                  <div className="text-sm whitespace-pre-wrap">{latest.summary || ""}</div>
-                  {latest.achievements?.length ? (
-                    <div>
-                      <div className="font-medium">Achievements</div>
-                      <ul className="list-disc ml-4 text-sm">
-                        {latest.achievements.map((a, i) => (<li key={i}>{a}</li>))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {latest.improvements?.length ? (
-                    <div>
-                      <div className="font-medium">Improvements</div>
-                      <ul className="list-disc ml-4 text-sm">
-                        {latest.improvements.map((a, i) => (<li key={i}>{a}</li>))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {latest.goals_next_week?.length ? (
-                    <div>
-                      <div className="font-medium">Goals for next week</div>
-                      <ul className="list-disc ml-4 text-sm">
-                        {latest.goals_next_week.map((a, i) => (<li key={i}>{a}</li>))}
-                      </ul>
-                    </div>
-                  ) : null}
+            
+            {/* Charts and Summary */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Summary Card (col-span-1) */}
+                <Card className="lg:col-span-1 shadow-lg">
+                    <CardHeader className="border-b pb-4">
+                        <CardTitle className="text-lg">Weekly Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4 text-sm">
+                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{latest.summary || "No detailed summary provided for this week."}</p>
+
+                        {(latest.achievements?.length || 0) > 0 && (
+                            <div className="pt-2 border-t">
+                                <div className="font-semibold text-base mb-1 text-primary">Achievements</div>
+                                <ul className="list-disc ml-5 space-y-1 text-muted-foreground">
+                                    {latest.achievements?.map((a, i) => (<li key={i}>{a}</li>))}
+                                </ul>
+                            </div>
+                        )}
+                        {(latest.improvements?.length || 0) > 0 && (
+                            <div className="pt-2 border-t">
+                                <div className="font-semibold text-base mb-1 text-primary">Key Improvements</div>
+                                <ul className="list-disc ml-5 space-y-1 text-muted-foreground">
+                                    {latest.improvements?.map((a, i) => (<li key={i}>{a}</li>))}
+                                </ul>
+                            </div>
+                        )}
+                        {(latest.goals_next_week?.length || 0) > 0 && (
+                            <div className="pt-2 border-t">
+                                <div className="font-semibold text-base mb-1 text-primary">Next Week Goals</div>
+                                <ul className="list-disc ml-5 space-y-1 text-muted-foreground">
+                                    {latest.goals_next_week?.map((a, i) => (<li key={i}>{a}</li>))}
+                                </ul>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Charts (col-span-2) */}
+                <div className="lg:col-span-2 space-y-6">
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Points Trend (Last 12 Weeks)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+                                <LineChart data={pointsSeries} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="week" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <Line type="monotone" dataKey="Points" stroke="var(--color-Points)" strokeWidth={2} dot={{ fill: "var(--color-Points)" }} activeDot={{ r: 6 }} />
+                                </LineChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Work Breakdown (This Week)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+                                <BarChart data={workSeries} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <ChartLegend content={<ChartLegendContent className="flex justify-center pt-2" />} />
+                                    <Bar dataKey="Tasks" fill="var(--color-Tasks)" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="Logs" fill="var(--color-Logs)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Points by week</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <LineChart data={pointsSeries}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
-                      <Line type="monotone" dataKey="Points" stroke="var(--color-Points)" dot />
-                    </LineChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tasks vs Logs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <BarChart data={workSeries}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
-                      <Bar dataKey="Tasks" fill="var(--color-Tasks)" />
-                      <Bar dataKey="Logs" fill="var(--color-Logs)" />
-                    </BarChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
             </div>
           </>
         )}
@@ -248,135 +296,140 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
   const pointsSeries = useMemo(() => reports.slice().reverse().map(r => ({ week: r.week_start, Points: r.points_gained || 0 })), [reports]);
   const workSeries = useMemo(() => [{ name: "This Week", Tasks: latest?.tasks_completed_count || 0, Logs: latest?.logs_count || 0 }], [latest]);
 
+  const currentProfile = useMemo(() => profiles.find(p => p.id === userIdFilter)?.username || "User", [profiles, userIdFilter]);
+
   return (
     <div className="space-y-6">
-      {isAdmin ? (
-        <div className="flex justify-end">
-          <select className="border rounded px-2 py-1" value={userIdFilter || ""} onChange={e => setUserIdFilter(e.target.value)}>
-            {profiles.map(p => (
-              <option key={p.id} value={p.id}>{p.username}</option>
-            ))}
-          </select>
-        </div>
-      ) : null}
-      {!latest ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No weekly data</CardTitle>
+      <Card className="shadow-lg">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Weekly Report
+          </CardTitle>
+          {isAdmin && profiles.length > 0 ? (
+            <Select value={userIdFilter || ""} onValueChange={setUserIdFilter}>
+              <SelectTrigger className="w-[150px] h-8 text-sm">
+                <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Select User" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.username}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+        </CardHeader>
+        <CardContent className="pt-6">
+          {!latest ? (
+            <div className="text-center py-4">
+              <div className="text-base font-medium">No Report Available</div>
+              <div className="text-sm text-muted-foreground">Report for {currentProfile} is pending.</div>
+            </div>
+          ) : (
+            <>
+              {/* Metric Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                
+                <div className="flex flex-col items-start border-r pr-2">
+                    <div className="p-1 bg-yellow-500/10 rounded-full text-yellow-600 mb-1">
+                        <Trophy className="h-4 w-4" />
+                    </div>
+                    <div className="text-xl font-bold">{latest.points_gained || 0}</div>
+                    <div className="text-xs text-muted-foreground">Points</div>
+                </div>
+                
+                <div className="flex flex-col items-start border-r pr-2">
+                    <div className="p-1 bg-primary/10 rounded-full text-primary mb-1">
+                        <Target className="h-4 w-4" />
+                    </div>
+                    <div className="text-xl font-bold">{latest.tasks_completed_count || 0}</div>
+                    <div className="text-xs text-muted-foreground">Tasks</div>
+                </div>
+                
+                <div className="flex flex-col items-start border-r pr-2">
+                    <div className="p-1 bg-indigo-500/10 rounded-full text-indigo-600 mb-1">
+                        <ListChecks className="h-4 w-4" />
+                    </div>
+                    <div className="text-xl font-bold">{latest.logs_count || 0}</div>
+                    <div className="text-xs text-muted-foreground">Logs</div>
+                </div>
+
+                <div className="flex flex-col items-start">
+                    <div className="p-1 bg-orange-500/10 rounded-full text-orange-600 mb-1">
+                        <Flame className="h-4 w-4" />
+                    </div>
+                    <div className="text-xl font-bold">{latest.achievements?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">Highlights</div>
+                </div>
+
+              </div>
+              
+              {/* Condensed Summary */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-medium border-b pb-2">
+                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                    Week starting <Badge variant="outline">{latest.week_start}</Badge>
+                </div>
+                
+                {(latest.achievements?.length || 0) > 0 && (
+                    <div>
+                        <div className="font-semibold text-sm">Achievements</div>
+                        <ul className="list-disc ml-5 text-xs text-muted-foreground mt-1">
+                            {latest.achievements?.slice(0, 2).map((a, i) => (<li key={i}>{a}</li>))}
+                        </ul>
+                    </div>
+                )}
+                
+                {(latest.goals_next_week?.length || 0) > 0 && (
+                    <div>
+                        <div className="font-semibold text-sm">Next Goals</div>
+                        <ul className="list-disc ml-5 text-xs text-muted-foreground mt-1">
+                            {latest.goals_next_week?.slice(0, 2).map((a, i) => (<li key={i}>{a}</li>))}
+                        </ul>
+                    </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Embedded Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Points Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">Your weekly report appears once the admin adds it.</div>
+            <ChartContainer config={chartConfig} className="min-h-[180px] w-full">
+              <LineChart data={pointsSeries} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="week" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <Line type="monotone" dataKey="Points" stroke="var(--color-Points)" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ChartContainer>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="shadow-card">
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Points Gained</CardTitle></CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{latest.points_gained || 0}</div>
-                <Progress value={Math.min(100, (latest.points_gained || 0))} className="mt-2" />
-              </CardContent>
-            </Card>
-            <Card className="shadow-card">
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Tasks Completed</CardTitle></CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{latest.tasks_completed_count || 0}</div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-card">
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Logs</CardTitle></CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{latest.logs_count || 0}</div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-card">
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Highlights</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {(latest.achievements || []).slice(0, 3).map((a, i) => (
-                    <Badge key={i} variant="outline">{a}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="text-sm">Week starting {latest.week_start}</div>
-                <div className="text-sm whitespace-pre-wrap">{latest.summary || ""}</div>
-                {latest.achievements?.length ? (
-                  <div>
-                    <div className="font-medium">Achievements</div>
-                    <ul className="list-disc ml-4 text-sm">
-                      {latest.achievements.map((a, i) => (<li key={i}>{a}</li>))}
-                    </ul>
-                  </div>
-                ) : null}
-                {latest.improvements?.length ? (
-                  <div>
-                    <div className="font-medium">Improvements</div>
-                    <ul className="list-disc ml-4 text-sm">
-                      {latest.improvements.map((a, i) => (<li key={i}>{a}</li>))}
-                    </ul>
-                  </div>
-                ) : null}
-                {latest.goals_next_week?.length ? (
-                  <div>
-                    <div className="font-medium">Goals for next week</div>
-                    <ul className="list-disc ml-4 text-sm">
-                      {latest.goals_next_week.map((a, i) => (<li key={i}>{a}</li>))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Points by week</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig}>
-                  <LineChart data={pointsSeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line type="monotone" dataKey="Points" stroke="var(--color-Points)" dot />
-                  </LineChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Tasks vs Logs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig}>
-                  <BarChart data={workSeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="Tasks" fill="var(--color-Tasks)" />
-                    <Bar dataKey="Logs" fill="var(--color-Logs)" />
-                  </BarChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
+        <Card className="shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Work Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="min-h-[180px] w-full">
+              <BarChart data={workSeries} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                <Bar dataKey="Tasks" fill="var(--color-Tasks)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Logs" fill="var(--color-Logs)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

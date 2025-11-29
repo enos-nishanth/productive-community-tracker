@@ -297,51 +297,86 @@ const Admin = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-card">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Admin</h1>
-          <div className="flex gap-2">
-            <Input placeholder="Search users" value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
-            <Button variant="outline" onClick={fetchSummary}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
+  // 1. Updates to the main Return block to fix Icon errors
+return (
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
+      {/* --- Sticky, Glassmorphism Header --- */}
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-1 bg-primary rounded-full hidden sm:block"></div>
+            <h1 className="text-xl font-bold tracking-tight">Admin Dashboard</h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative hidden sm:block">
+              <Input 
+                placeholder="Search users..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+                className="w-64 pl-4 bg-muted/50 border-transparent focus:border-input focus:bg-background transition-all" 
+              />
+            </div>
+            
+            <Button variant="ghost" size="icon" onClick={fetchSummary} className="text-muted-foreground hover:text-foreground [&_svg]:h-4 [&_svg]:w-4">
+              {/* Wrapped icon styling to prevent Type Errors */}
+              <RefreshCw />
+            </Button>
+
             <Dialog open={announceOpen} onOpenChange={setAnnounceOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary text-primary-foreground">New Announcement</Button>
+                <Button className="shadow-md hover:shadow-lg transition-all rounded-full px-6 [&_svg]:mr-2 [&_svg]:h-4 [&_svg]:w-4">
+                  <PlusCircle />
+                  New Announcement
+                </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-xl">
+              <DialogContent className="max-w-xl sm:rounded-2xl">
                 <DialogHeader>
-                  <DialogTitle>Compose Announcement</DialogTitle>
+                  <DialogTitle className="text-xl">Compose Announcement</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-3">
-                  <Input placeholder="Title" value={announceForm.title} onChange={e => setAnnounceForm({ ...announceForm, title: e.target.value })} />
-                  <Textarea placeholder="Content" value={announceForm.content} onChange={e => setAnnounceForm({ ...announceForm, content: e.target.value })} rows={6} />
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="pin" checked={announceForm.pinned} onChange={(e) => setAnnounceForm({ ...announceForm, pinned: e.target.checked })} />
-                    <label htmlFor="pin" className="text-sm">Pin to top</label>
-                  </div>
-                  <Input type="file" accept="image/*" onChange={(e) => setAnnounceImage(e.target.files?.[0] || null)} />
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setAnnounceOpen(false)}>Cancel</Button>
-                    <Button onClick={async () => {
-                      if (!announceForm.title.trim() || !announceForm.content.trim()) { toast.error("Enter title and content"); return; }
-                      let imageUrl: string | null = null;
-                      if (announceImage) {
-                        const sanitized = announceImage.name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "_");
-                        const path = `announcements/${Date.now()}_${sanitized}`;
-                        const { data, error } = await supabase.storage.from("post-images").upload(path, announceImage);
-                        if (!error) {
-                          const { data: url } = supabase.storage.from("post-images").getPublicUrl(data.path);
-                          imageUrl = url?.publicUrl || null;
+                <div className="space-y-4 py-4">
+                  <Input 
+                    placeholder="Announcement Title" 
+                    className="text-lg font-medium border-none shadow-none focus-visible:ring-0 px-0 border-b rounded-none focus:border-primary transition-colors"
+                    value={announceForm.title} 
+                    onChange={e => setAnnounceForm({ ...announceForm, title: e.target.value })} 
+                  />
+                  <Textarea 
+                    placeholder="What would you like to announce?" 
+                    className="min-h-[150px] resize-none bg-muted/30 border-0 focus-visible:ring-0"
+                    value={announceForm.content} 
+                    onChange={e => setAnnounceForm({ ...announceForm, content: e.target.value })} 
+                  />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="pin" className="rounded border-gray-300 text-primary focus:ring-primary" checked={announceForm.pinned} onChange={(e) => setAnnounceForm({ ...announceForm, pinned: e.target.checked })} />
+                        <label htmlFor="pin" className="text-sm font-medium cursor-pointer select-none">Pin to top</label>
+                      </div>
+                      <Input type="file" accept="image/*" className="h-9 w-full sm:w-auto text-xs file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" onChange={(e) => setAnnounceImage(e.target.files?.[0] || null)} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" onClick={() => setAnnounceOpen(false)}>Cancel</Button>
+                      <Button onClick={async () => {
+                        if (!announceForm.title.trim() || !announceForm.content.trim()) { toast.error("Enter title and content"); return; }
+                        let imageUrl: string | null = null;
+                        if (announceImage) {
+                          const sanitized = announceImage.name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "_");
+                          const path = `announcements/${Date.now()}_${sanitized}`;
+                          const { data, error } = await supabase.storage.from("post-images").upload(path, announceImage);
+                          if (!error) {
+                            const { data: url } = supabase.storage.from("post-images").getPublicUrl(data.path);
+                            imageUrl = url?.publicUrl || null;
+                          }
                         }
-                      }
-                      const { error: insErr } = await supabase.from("announcements").insert({ user_id: user?.id as string, title: announceForm.title.trim(), content: announceForm.content.trim(), image_url: imageUrl, pinned: announceForm.pinned });
-                      if (insErr) { toast.error("Failed to post announcement"); return; }
-                      toast.success("Announcement posted");
-                      setAnnounceOpen(false);
-                      setAnnounceForm({ title: "", content: "", pinned: false });
-                      setAnnounceImage(null);
-                    }}>Post</Button>
+                        const { error: insErr } = await supabase.from("announcements").insert({ user_id: user?.id as string, title: announceForm.title.trim(), content: announceForm.content.trim(), image_url: imageUrl, pinned: announceForm.pinned });
+                        if (insErr) { toast.error("Failed to post announcement"); return; }
+                        toast.success("Announcement posted");
+                        setAnnounceOpen(false);
+                        setAnnounceForm({ title: "", content: "", pinned: false });
+                        setAnnounceImage(null);
+                      }}>Post Announcement</Button>
+                    </div>
                   </div>
                 </div>
               </DialogContent>
@@ -349,88 +384,127 @@ const Admin = () => {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 space-y-4">
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <Card className="shadow-card">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><UsersIcon /> Total Users</CardTitle></CardHeader>
-                  <CardContent><div className="text-2xl font-bold">{totals.totalUsers}</div></CardContent>
-                </Card>
-                <Card className="shadow-card">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Crown className="h-4 w-4 text-yellow-500" /> Admins</CardTitle></CardHeader>
-                  <CardContent><div className="text-2xl font-bold">{totals.adminCount}</div></CardContent>
-                </Card>
-                <Card className="shadow-card">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><RefreshCw className="h-4 w-4 text-success" /> Avg Streak</CardTitle></CardHeader>
-                  <CardContent><div className="text-2xl font-bold">{totals.avgStreak}</div></CardContent>
-                </Card>
-                <Card className="shadow-card">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Total Points</CardTitle></CardHeader>
-                  <CardContent><div className="text-2xl font-bold">{totals.totalPoints}</div></CardContent>
-                </Card>
+
+      <main className="container mx-auto px-4 py-8 space-y-8">
+          
+          {/* --- Stats Overview Section --- */}
+          {/* FIX: Removed className from Icons and applied [&_svg] to parent div */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50 backdrop-blur">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Users</p>
+                  <h3 className="text-2xl font-bold mt-1">{totals.totalUsers}</h3>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 [&_svg]:h-5 [&_svg]:w-5">
+                  <UsersIcon />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50 backdrop-blur">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Admins</p>
+                  <h3 className="text-2xl font-bold mt-1">{totals.adminCount}</h3>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 dark:text-yellow-400 [&_svg]:h-5 [&_svg]:w-5">
+                  <Crown />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50 backdrop-blur">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Avg Streak</p>
+                  <h3 className="text-2xl font-bold mt-1">{totals.avgStreak}</h3>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 [&_svg]:h-5 [&_svg]:w-5">
+                  <RefreshCw />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50 backdrop-blur">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Points</p>
+                  <h3 className="text-2xl font-bold mt-1">{totals.totalPoints}</h3>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 [&_svg]:h-5 [&_svg]:w-5">
+                  <FileText />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* --- Main Users Table --- */}
+          <Card className="shadow-lg border-muted/40 overflow-hidden">
+            <CardHeader className="bg-muted/10 border-b flex flex-row items-center justify-between py-4">
+              <CardTitle className="text-lg font-semibold">User Management</CardTitle>
+              <div className="sm:hidden w-32">
+                 <Input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="h-8 text-xs" />
               </div>
+            </CardHeader>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b bg-muted/30">
-                    <th className="py-2 px-2">User</th>
-                    <th className="py-2 px-2">Streak</th>
-                    <th className="py-2 px-2">Points</th>
-                    <th className="py-2 px-2">Tasks</th>
-                    <th className="py-2 px-2">Logs</th>
-                    <th className="py-2 px-2">Posts</th>
-                    <th className="py-2 px-2">Messages</th>
-                    <th className="py-2 px-2">Role</th>
-                    <th className="py-2 px-2">Actions</th>
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/40 text-muted-foreground uppercase text-xs font-semibold">
+                  <tr>
+                    <th className="py-3 px-4">User</th>
+                    <th className="py-3 px-4">Streak</th>
+                    <th className="py-3 px-4">Points</th>
+                    <th className="py-3 px-4">Tasks</th>
+                    <th className="py-3 px-4">Logs</th>
+                    <th className="py-3 px-4">Posts</th>
+                    <th className="py-3 px-4">Chat</th>
+                    <th className="py-3 px-4">Role</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-muted/30">
                   {filtered.map(row => (
-                    <tr key={row.user_id} className="border-b hover:bg-muted/20">
-                      <td className="py-2 px-2">
-                        <div className="flex items-center gap-2">
-                          {row.avatar_url ? (
-                            <img src={row.avatar_url} alt="avatar" className="h-6 w-6 rounded-full" />
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-muted" />
-                          )}
-                          <button className="text-primary" onClick={() => toggleExpand(row.user_id)}>
+                    <tr key={row.user_id} className="hover:bg-muted/20 transition-colors group">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`relative h-9 w-9 rounded-full overflow-hidden border-2 ${expanded[row.user_id] ? 'border-primary' : 'border-transparent'}`}>
+                             {row.avatar_url ? (
+                                <img src={row.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="h-full w-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                                  {row.username?.slice(0,2).toUpperCase()}
+                                </div>
+                              )}
+                          </div>
+                          <button className="font-medium text-foreground hover:text-primary hover:underline underline-offset-4 transition-all" onClick={() => toggleExpand(row.user_id)}>
                             {row.username}
                           </button>
                         </div>
                       </td>
-                      <td className="py-2 px-2">{row.streak ?? 0}</td>
-                      <td className="py-2 px-2">{row.points ?? 0}</td>
-                      <td className="py-2 px-2">{row.tasks_count}</td>
-                      <td className="py-2 px-2">{row.logs_count}</td>
-                      <td className="py-2 px-2">{row.posts_count}</td>
-                      <td className="py-2 px-2">{row.messages_count}</td>
-                      <td className="py-2 px-2">
-                        <Badge variant={row.role === "admin" ? "secondary" : "outline"}>{row.role || "member"}</Badge>
+                      <td className="py-3 px-4 font-mono">{row.streak ?? 0}</td>
+                      <td className="py-3 px-4 font-mono font-medium text-primary">{row.points ?? 0}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{row.tasks_count}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{row.logs_count}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{row.posts_count}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{row.messages_count}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={row.role === "admin" ? "default" : "secondary"} className="uppercase text-[10px] tracking-wider">
+                            {row.role || "member"}
+                        </Badge>
                       </td>
-                      <td className="py-2 px-2">
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => resetStreak(row.user_id)}>Reset Streak</Button>
-                          <Button size="sm" variant="outline" onClick={() => resetPoints(row.user_id)}>Reset Points</Button>
-                          {row.role === "admin" ? (
-                            <Button size="sm" onClick={() => makeMember(row.user_id)}>Make Member</Button>
-                          ) : (
-                            <Button size="sm" onClick={() => makeAdmin(row.user_id)}>Make Admin</Button>
-                          )}
-                          <Dialog open={reportModalFor === row.user_id} onOpenChange={(open) => setReportModalFor(open ? row.user_id : null)}>
+                      <td className="py-3 px-4">
+                        {/* Actions fixed with [&_svg] classes on buttons */}
+                        <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <Dialog open={reportModalFor === row.user_id} onOpenChange={(open) => setReportModalFor(open ? row.user_id : null)}>
                             <DialogTrigger asChild>
-                              <Button size="sm" className="bg-primary text-primary-foreground"><PlusCircle className="h-4 w-4 mr-1" /> Add Weekly Report</Button>
+                              <Button size="sm" variant="default" className="h-7 px-3 text-xs mr-2 shadow-sm [&_svg]:mr-1 [&_svg]:h-3 [&_svg]:w-3">
+                                <PlusCircle /> Report
+                              </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>Add Weekly Report — {row.username}</DialogTitle>
+                                <DialogTitle>Add Weekly Report — <span className="text-primary">{row.username}</span></DialogTitle>
                               </DialogHeader>
                               <form
-                                className="space-y-3"
+                                className="space-y-4 pt-4"
                                 onSubmit={async (e) => {
                                   e.preventDefault();
                                   await submitWeekly(row.user_id, reportDraft);
@@ -438,108 +512,121 @@ const Admin = () => {
                                   setReportDraft({ week_start: "", summary: "", achievements: "", improvements: "", points_gained: 0, goals_next_week: "" });
                                 }}
                               >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <div>
-                                    <div className="text-xs mb-1">Week Start</div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-1.5">
+                                    <label className="text-sm font-medium">Week Start</label>
                                     <Input type="date" value={reportDraft.week_start} onChange={e => setReportDraft({ ...reportDraft, week_start: e.target.value })} />
                                   </div>
-                                  <div>
-                                    <div className="text-xs mb-1">Points Gained</div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-sm font-medium">Points Gained</label>
                                     <Input type="number" value={reportDraft.points_gained} onChange={e => setReportDraft({ ...reportDraft, points_gained: Number(e.target.value) })} />
                                   </div>
                                 </div>
-                                <div>
-                                  <div className="text-xs mb-1">Summary</div>
-                                  <Textarea value={reportDraft.summary} onChange={e => setReportDraft({ ...reportDraft, summary: e.target.value })} />
+                                <div className="space-y-1.5">
+                                  <label className="text-sm font-medium">Summary</label>
+                                  <Textarea className="min-h-[80px]" value={reportDraft.summary} onChange={e => setReportDraft({ ...reportDraft, summary: e.target.value })} />
                                 </div>
-                                <div>
-                                  <div className="text-xs mb-1">Achievements (one per line)</div>
-                                  <Textarea value={reportDraft.achievements} onChange={e => setReportDraft({ ...reportDraft, achievements: e.target.value })} />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                      <label className="text-sm font-medium">Achievements</label>
+                                      <Textarea className="min-h-[120px] text-xs" placeholder="One per line" value={reportDraft.achievements} onChange={e => setReportDraft({ ...reportDraft, achievements: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <label className="text-sm font-medium">Improvements</label>
+                                      <Textarea className="min-h-[120px] text-xs" placeholder="One per line" value={reportDraft.improvements} onChange={e => setReportDraft({ ...reportDraft, improvements: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <label className="text-sm font-medium">Goals</label>
+                                      <Textarea className="min-h-[120px] text-xs" placeholder="One per line" value={reportDraft.goals_next_week} onChange={e => setReportDraft({ ...reportDraft, goals_next_week: e.target.value })} />
+                                    </div>
                                 </div>
-                                <div>
-                                  <div className="text-xs mb-1">Improvements (one per line)</div>
-                                  <Textarea value={reportDraft.improvements} onChange={e => setReportDraft({ ...reportDraft, improvements: e.target.value })} />
-                                </div>
-                                <div>
-                                  <div className="text-xs mb-1">Goals for Next Week (one per line)</div>
-                                  <Textarea value={reportDraft.goals_next_week} onChange={e => setReportDraft({ ...reportDraft, goals_next_week: e.target.value })} />
-                                </div>
-                                <div className="flex justify-end gap-2">
+                                <div className="flex justify-end gap-2 pt-2">
                                   <Button type="button" variant="outline" onClick={() => setReportModalFor(null)}>Cancel</Button>
-                                  <Button type="submit">Save</Button>
+                                  <Button type="submit">Save Report</Button>
                                 </div>
                               </form>
                             </DialogContent>
                           </Dialog>
+
                           <Dialog open={recentModalFor === row.user_id} onOpenChange={(open) => setRecentModalFor(open ? row.user_id : null)}>
                             <DialogTrigger asChild>
-                              <Button size="sm" variant="secondary" onClick={() => openRecentForUser(row.user_id)}>
-                                <CalendarDays className="h-4 w-4 mr-1" /> Last 7 Days
+                              <Button size="sm" variant="secondary" className="h-7 px-3 text-xs [&_svg]:mr-1 [&_svg]:h-3 [&_svg]:w-3" onClick={() => openRecentForUser(row.user_id)}>
+                                <CalendarDays /> Recent
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-4xl">
+                            <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
                               <DialogHeader>
-                                <DialogTitle>Past 7 Days — {row.username}</DialogTitle>
+                                <DialogTitle className="text-xl">Activity History: <span className="text-primary">{row.username}</span></DialogTitle>
                               </DialogHeader>
                               {recentLoading ? (
-                                <div className="p-6 text-sm text-muted-foreground">Loading recent activity...</div>
+                                <div className="flex-1 flex items-center justify-center text-muted-foreground">Loading recent activity...</div>
                               ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Tasks</CardTitle></CardHeader>
-                                    <CardContent className="space-y-2 max-h-64 overflow-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1 overflow-y-auto p-1">
+                                  <Card className="flex flex-col h-full border-l-4 border-l-blue-500">
+                                    <CardHeader className="py-3 px-4 bg-muted/20"><CardTitle className="text-sm font-bold">Tasks</CardTitle></CardHeader>
+                                    <CardContent className="flex-1 overflow-auto p-3 space-y-2">
                                       {(recentData[row.user_id]?.tasks || []).map((t: any) => (
-                                        <div key={t.id} className="border p-2 rounded">
-                                          <div className="font-medium">{t.title}</div>
-                                          {t.description ? <div className="text-xs text-muted-foreground">{t.description}</div> : null}
-                                          <div className="text-xs">{t.created_at}</div>
+                                        <div key={t.id} className="bg-card border p-2.5 rounded-md shadow-sm text-sm">
+                                          <div className="font-semibold">{t.title}</div>
+                                          {t.description && <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{t.description}</div>}
+                                          <div className="text-[10px] text-muted-foreground mt-2 text-right">{t.created_at}</div>
                                         </div>
                                       ))}
-                                      {!(recentData[row.user_id]?.tasks || []).length && (<div className="text-xs text-muted-foreground">No tasks</div>)}
+                                      {!(recentData[row.user_id]?.tasks || []).length && (<div className="text-xs text-muted-foreground text-center py-4">No recent tasks</div>)}
                                     </CardContent>
                                   </Card>
-                                  <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Daily Logs</CardTitle></CardHeader>
-                                    <CardContent className="space-y-2 max-h-64 overflow-auto">
+                                  <Card className="flex flex-col h-full border-l-4 border-l-green-500">
+                                    <CardHeader className="py-3 px-4 bg-muted/20"><CardTitle className="text-sm font-bold">Daily Logs</CardTitle></CardHeader>
+                                    <CardContent className="flex-1 overflow-auto p-3 space-y-2">
                                       {(recentData[row.user_id]?.logs || []).map((l: any) => (
-                                        <div key={l.id} className="border p-2 rounded">
-                                          <div className="font-medium">{l.title}</div>
-                                          <div className="text-xs text-muted-foreground truncate">{l.content}</div>
-                                          <div className="text-xs">{l.created_at}</div>
+                                        <div key={l.id} className="bg-card border p-2.5 rounded-md shadow-sm text-sm">
+                                          <div className="font-semibold">{l.title}</div>
+                                          <div className="text-xs text-muted-foreground mt-1 line-clamp-3">{l.content}</div>
+                                          <div className="text-[10px] text-muted-foreground mt-2 text-right">{l.created_at}</div>
                                         </div>
                                       ))}
-                                      {!(recentData[row.user_id]?.logs || []).length && (<div className="text-xs text-muted-foreground">No logs</div>)}
+                                      {!(recentData[row.user_id]?.logs || []).length && (<div className="text-xs text-muted-foreground text-center py-4">No logs</div>)}
                                     </CardContent>
                                   </Card>
-                                  <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Community Posts</CardTitle></CardHeader>
-                                    <CardContent className="space-y-2 max-h-64 overflow-auto">
+                                  <Card className="flex flex-col h-full border-l-4 border-l-purple-500">
+                                    <CardHeader className="py-3 px-4 bg-muted/20"><CardTitle className="text-sm font-bold">Posts</CardTitle></CardHeader>
+                                    <CardContent className="flex-1 overflow-auto p-3 space-y-2">
                                       {(recentData[row.user_id]?.posts || []).map((p: any) => (
-                                        <div key={p.id} className="border p-2 rounded">
-                                          <div className="font-medium">{p.title}</div>
-                                          <div className="text-xs text-muted-foreground truncate">{p.content}</div>
-                                          <div className="text-xs">{p.created_at}</div>
+                                        <div key={p.id} className="bg-card border p-2.5 rounded-md shadow-sm text-sm">
+                                          <div className="font-semibold">{p.title}</div>
+                                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.content}</div>
+                                          <div className="text-[10px] text-muted-foreground mt-2 text-right">{p.created_at}</div>
                                         </div>
                                       ))}
-                                      {!(recentData[row.user_id]?.posts || []).length && (<div className="text-xs text-muted-foreground">No posts</div>)}
+                                      {!(recentData[row.user_id]?.posts || []).length && (<div className="text-xs text-muted-foreground text-center py-4">No posts</div>)}
                                     </CardContent>
                                   </Card>
-                                  <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Group Chat</CardTitle></CardHeader>
-                                    <CardContent className="space-y-2 max-h-64 overflow-auto">
+                                  <Card className="flex flex-col h-full border-l-4 border-l-orange-500">
+                                    <CardHeader className="py-3 px-4 bg-muted/20"><CardTitle className="text-sm font-bold">Chat</CardTitle></CardHeader>
+                                    <CardContent className="flex-1 overflow-auto p-3 space-y-2">
                                       {(recentData[row.user_id]?.messages || []).map((m: any) => (
-                                        <div key={m.id} className="border p-2 rounded">
-                                          <div className="text-xs text-muted-foreground">{m.created_at}</div>
-                                          {m.content ? <div className="text-sm">{m.content}</div> : <div className="text-xs">[Attachment]</div>}
+                                        <div key={m.id} className="bg-card border p-2.5 rounded-md shadow-sm text-sm">
+                                          {m.content ? <div className="text-sm">{m.content}</div> : <div className="text-xs italic text-muted-foreground">[Attachment]</div>}
+                                          <div className="text-[10px] text-muted-foreground mt-2 text-right">{m.created_at}</div>
                                         </div>
                                       ))}
-                                      {!(recentData[row.user_id]?.messages || []).length && (<div className="text-xs text-muted-foreground">No messages</div>)}
+                                      {!(recentData[row.user_id]?.messages || []).length && (<div className="text-xs text-muted-foreground text-center py-4">No messages</div>)}
                                     </CardContent>
                                   </Card>
                                 </div>
                               )}
                             </DialogContent>
                           </Dialog>
+                          
+                          <div className="flex gap-1 ml-2 [&_svg]:h-3 [&_svg]:w-3">
+                             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" title="Reset Streak" onClick={() => resetStreak(row.user_id)}><RefreshCw /></Button>
+                             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" title="Reset Points" onClick={() => resetPoints(row.user_id)}><FileText /></Button>
+                             {row.role === "admin" ? (
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" title="Revoke Admin" onClick={() => makeMember(row.user_id)}><UsersIcon /></Button>
+                              ) : (
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" title="Make Admin" onClick={() => makeAdmin(row.user_id)}><Crown /></Button>
+                              )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -547,118 +634,153 @@ const Admin = () => {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {filtered.map(row => (
-          expanded[row.user_id] ? (
-            <div key={row.user_id} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{row.username} Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="font-medium mb-2">Tasks</div>
-                      <div className="space-y-1 max-h-64 overflow-auto">
-                        {(detailData[row.user_id]?.tasks || []).map(t => (
-                          <div key={t.id} className="border p-2 rounded">{t.title}</div>
-                        ))}
-                      </div>
+          {/* --- Expanded Detail View --- */}
+          <div className="space-y-6">
+            {filtered.map(row => (
+                expanded[row.user_id] ? (
+                <div key={row.user_id} className="animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="h-px flex-1 bg-border"></div>
+                        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">{row.username} • Deep Dive</span>
+                        <div className="h-px flex-1 bg-border"></div>
                     </div>
-                    <div>
-                      <div className="font-medium mb-2">Daily Logs</div>
-                      <div className="space-y-1 max-h-64 overflow-auto">
-                        {(detailData[row.user_id]?.logs || []).map(l => (
-                          <div key={l.id} className="border p-2 rounded">{l.title}</div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-medium mb-2">Community Posts</div>
-                      <div className="space-y-1 max-h-64 overflow-auto">
-                        {(detailData[row.user_id]?.posts || []).map(p => (
-                          <div key={p.id} className="border p-2 rounded">{p.title}</div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-medium mb-2">Group Chat Messages</div>
-                      <div className="space-y-1 max-h-64 overflow-auto">
-                        {(detailData[row.user_id]?.messages || []).map(m => (
-                          <div key={m.id} className="border p-2 rounded">{m.content}</div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Weekly Report</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WeeklyReportForm userId={row.user_id} onSubmit={submitWeekly} />
-                </CardContent>
-              </Card>
-            </div>
-          ) : null
-        ))}
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    {/* Left Col: Details */}
+                    <Card className="xl:col-span-2 border shadow-md">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 [&_svg]:h-5 [&_svg]:w-5 [&_svg]:text-primary">
+                                <UsersIcon />
+                                User Activity Snapshot
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">Recent Tasks</h4>
+                                <div className="space-y-2 h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                    {(detailData[row.user_id]?.tasks || []).map(t => (
+                                    <div key={t.id} className="p-3 rounded bg-muted/30 border text-sm hover:bg-muted transition-colors">
+                                        {t.title}
+                                    </div>
+                                    ))}
+                                    {!(detailData[row.user_id]?.tasks || []).length && <p className="text-xs text-muted-foreground italic">No tasks found.</p>}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">Recent Logs</h4>
+                                <div className="space-y-2 h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                    {(detailData[row.user_id]?.logs || []).map(l => (
+                                    <div key={l.id} className="p-3 rounded bg-muted/30 border text-sm hover:bg-muted transition-colors">
+                                        <span className="font-medium">{l.title}</span>
+                                    </div>
+                                    ))}
+                                    {!(detailData[row.user_id]?.logs || []).length && <p className="text-xs text-muted-foreground italic">No logs found.</p>}
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">Community Posts</h4>
+                                <div className="space-y-2 h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {(detailData[row.user_id]?.posts || []).map(p => (
+                                    <div key={p.id} className="p-3 rounded bg-muted/30 border text-sm">
+                                        {p.title}
+                                    </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <h4 className="font-semibold text-sm text-muted-foreground border-b pb-1">Chat History</h4>
+                                <div className="space-y-2 h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {(detailData[row.user_id]?.messages || []).map(m => (
+                                    <div key={m.id} className="p-3 rounded bg-muted/30 border text-sm text-muted-foreground">
+                                        "{m.content}"
+                                    </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Right Col: Form */}
+                    <Card className="border-l-4 border-l-primary shadow-md">
+                        <CardHeader className="bg-primary/5">
+                            <CardTitle className="text-primary">Weekly Report</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <WeeklyReportForm userId={row.user_id} onSubmit={submitWeekly} />
+                        </CardContent>
+                    </Card>
+                    </div>
+                </div>
+                ) : null
+            ))}
+        </div>
       </main>
     </div>
   );
 };
 
-const WeeklyReportForm = ({ userId, onSubmit }: { userId: string; onSubmit: (uid: string, form: { week_start: string; summary: string; achievements: string; improvements: string; points_gained: number; goals_next_week: string }) => void }) => {
+// 2. Updated WeeklyReportForm to optionally accept className to prevent type errors
+const WeeklyReportForm = ({ userId, onSubmit, className }: { userId: string; onSubmit: (uid: string, form: { week_start: string; summary: string; achievements: string; improvements: string; points_gained: number; goals_next_week: string }) => void; className?: string }) => {
   const [week_start, setWeekStart] = useState("");
   const [summary, setSummary] = useState("");
   const [achievements, setAchievements] = useState("");
   const [improvements, setImprovements] = useState("");
   const [points_gained, setPointsGained] = useState<number>(0);
   const [goals_next_week, setGoals] = useState("");
+  
   return (
     <form
-      className="space-y-3"
+      className={`space-y-4 ${className || ''}`}
       onSubmit={e => {
         e.preventDefault();
         onSubmit(userId, { week_start, summary, achievements, improvements, points_gained, goals_next_week });
       }}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <div className="text-xs mb-1">Week Start</div>
-          <Input type="date" value={week_start} onChange={e => setWeekStart(e.target.value)} />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Week Start</label>
+          <Input type="date" className="bg-background" value={week_start} onChange={e => setWeekStart(e.target.value)} />
         </div>
-        <div>
-          <div className="text-xs mb-1">Points Gained</div>
-          <Input type="number" value={points_gained} onChange={e => setPointsGained(Number(e.target.value))} />
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Points +</label>
+          <Input type="number" className="bg-background" value={points_gained} onChange={e => setPointsGained(Number(e.target.value))} />
         </div>
       </div>
-      <div>
-        <div className="text-xs mb-1">Summary</div>
-        <Textarea value={summary} onChange={e => setSummary(e.target.value)} />
+      
+      <div className="space-y-1">
+        <label className="text-xs font-semibold text-muted-foreground uppercase">Summary</label>
+        <Textarea className="bg-background min-h-[80px]" placeholder="Brief weekly summary..." value={summary} onChange={e => setSummary(e.target.value)} />
       </div>
-      <div>
-        <div className="text-xs mb-1">Achievements (one per line)</div>
-        <Textarea value={achievements} onChange={e => setAchievements(e.target.value)} />
+      
+      <div className="space-y-1">
+        <label className="text-xs font-semibold text-muted-foreground uppercase">Achievements</label>
+        <Textarea className="bg-background min-h-[80px]" placeholder="- Item 1&#10;- Item 2" value={achievements} onChange={e => setAchievements(e.target.value)} />
       </div>
-      <div>
-        <div className="text-xs mb-1">Improvements (one per line)</div>
-        <Textarea value={improvements} onChange={e => setImprovements(e.target.value)} />
+      
+      <div className="space-y-1">
+        <label className="text-xs font-semibold text-muted-foreground uppercase">Improvements</label>
+        <Textarea className="bg-background min-h-[80px]" placeholder="Areas to grow..." value={improvements} onChange={e => setImprovements(e.target.value)} />
       </div>
-      <div>
-        <div className="text-xs mb-1">Goals for Next Week (one per line)</div>
-        <Textarea value={goals_next_week} onChange={e => setGoals(e.target.value)} />
+      
+      <div className="space-y-1">
+        <label className="text-xs font-semibold text-muted-foreground uppercase">Next Week Goals</label>
+        <Textarea className="bg-background min-h-[80px]" placeholder="Target goals..." value={goals_next_week} onChange={e => setGoals(e.target.value)} />
       </div>
-      <div className="flex justify-end">
-        <Button type="submit">Save Weekly Report</Button>
+      
+      <div className="pt-2">
+        <Button type="submit" className="w-full font-bold shadow-md">Submit Report</Button>
       </div>
     </form>
   );
 };
-
 export default Admin;
 
 const UsersIcon = () => <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3Zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3Zm0 2c-2.67 0-8 1.34-8 4v2h12v-2c0-2.66-5.33-4-8-4Zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h8v-2c0-2.66-5.33-4-8-4Z"/></svg>;

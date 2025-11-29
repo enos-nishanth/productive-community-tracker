@@ -541,208 +541,242 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
 
   /* ---------------- Render ---------------- */
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-[85vh] w-full max-w-5xl mx-auto border rounded-xl shadow-xl overflow-hidden bg-background">
+      {/* --- HEADER --- */}
+      <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-sm z-10">
         <div>
-          <h2 className="text-2xl font-bold">Community Chat</h2>
-          <p className="text-sm text-muted-foreground">Connect with fellow members in real-time</p>
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            Community Chat
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Connect with fellow members in real-time
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-xs text-muted-foreground">
-            {Object.keys(typingUsersMap)
-              .filter((uid) => uid !== userId && Date.now() - (typingUsersMap[uid] || 0) < 6000).length > 0 ? (
-              <span>
+        
+        {/* Typing Indicator (Header Version) */}
+        <div className="text-xs text-muted-foreground h-4">
+           {Object.keys(typingUsersMap).filter(
+              (uid) => uid !== userId && Date.now() - (typingUsersMap[uid] || 0) < 6000
+            ).length > 0 && (
+              <span className="animate-pulse text-primary font-medium">
                 {Object.keys(typingUsersMap)
                   .filter((uid) => uid !== userId && Date.now() - (typingUsersMap[uid] || 0) < 6000)
                   .map((uid) => {
                     const u = users.find((x) => x.id === uid);
-                    return u ? (u.full_name || u.username) : uid;
+                    return u ? u.full_name || u.username : uid;
                   })
-                  .slice(0, 3)
-                  .join(", ")}{" "}
-                typing...
+                  .slice(0, 2) // Limit names
+                  .join(", ")}
+                {Object.keys(typingUsersMap).length > 2 ? "..." : ""} is typing...
               </span>
-            ) : (
-              <span className="opacity-60">no one typing</span>
             )}
-          </div>
         </div>
       </div>
 
-      <Card
-        className="shadow-card h-[700px] flex flex-col bg-cover bg-center bg-no-repeat"
-        style={{
-        backgroundImage: "url('/src/assets/logo.png')",
-        backgroundColor: "#f2f3f5",
-        backgroundBlendMode: "overlay",
-        }}
+      {/* --- MAIN CHAT AREA --- */}
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/50 dark:bg-black/20 relative"
       >
+        {/* Background Watermark */}
+        <div 
+            className="absolute inset-0 opacity-[0.03] pointer-events-none bg-center bg-no-repeat bg-contain"
+            style={{ backgroundImage: "url('/src/assets/logo.png')" }}
+        />
 
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-6">
-          {groupedWithDates().map((group) => (
-            <div key={group.dateHeader}>
-              <div className="text-center my-2">
-                <Badge variant="outline">{group.dateHeader}</Badge>
+        {groupedWithDates().map((group) => (
+            <div key={group.dateHeader} className="relative z-0">
+              {/* Date Separator */}
+              <div className="relative flex items-center py-4">
+                <div className="flex-grow border-t border-muted" />
+                <span className="flex-shrink-0 mx-4 text-xs font-medium text-muted-foreground bg-background/50 px-2 py-1 rounded-full border">
+                  {group.dateHeader}
+                </span>
+                <div className="flex-grow border-t border-muted" />
               </div>
 
               {group.messages.map((message) => {
                 const mine = message.user_id === userId;
 
+                // DELETED MESSAGE UI
                 if (message.is_deleted) {
                   return (
-                    <div key={message.id} className={`flex ${mine ? "flex-row-reverse" : "flex-row"} gap-3`}>
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className={`${avatarColorFromId(message.user_id)} text-white`}>
-                          {message.profiles?.username?.charAt(0)?.toUpperCase() ?? "?"}
-                        </AvatarFallback>
+                    <div key={message.id} className={`flex ${mine ? "flex-row-reverse" : "flex-row"} gap-3 mb-2`}>
+                      <Avatar className="h-8 w-8 opacity-50">
+                        <AvatarFallback>{message.profiles?.username?.charAt(0)?.toUpperCase() ?? "?"}</AvatarFallback>
                       </Avatar>
-                      <div className={`flex flex-col max-w-[70%] ${mine ? "items-end" : "items-start"}`}>
-                        <div className="rounded-lg p-3 bg-gray-300 text-sm italic opacity-80">Message deleted</div>
+                      <div className="border border-dashed border-muted-foreground/30 bg-muted/20 px-4 py-2 rounded-lg text-xs italic text-muted-foreground">
+                        Message deleted
                       </div>
                     </div>
                   );
                 }
 
+                // NORMAL MESSAGE UI
                 return (
                   <div
                     key={message.id}
                     onMouseEnter={() => setHoveredMessageId(message.id)}
                     onMouseLeave={() => setHoveredMessageId((id) => (id === message.id ? null : id))}
-                    className={`relative flex gap-3 ${mine ? "flex-row-reverse" : "flex-row"}`}
+                    className={`group relative flex gap-3 mb-2 ${mine ? "flex-row-reverse" : "flex-row"}`}
                   >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className={`${avatarColorFromId(message.user_id)} text-white`}>
+                    {/* Avatar */}
+                    <Avatar className="h-8 w-8 mt-1 border shadow-sm">
+                      <AvatarFallback className={`${avatarColorFromId(message.user_id)} text-white font-semibold text-xs`}>
                         {message.profiles?.username?.charAt(0)?.toUpperCase() ?? "?"}
                       </AvatarFallback>
                     </Avatar>
 
-                    {/* Make this container relative so the inline hover area positions correctly */}
+                    {/* Message Content Container */}
                     <div className={`relative flex flex-col max-w-[75%] ${mine ? "items-end" : "items-start"}`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium">{message.profiles?.full_name || message.profiles?.username}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(message.created_at), "hh:mm a")}
-                          {message.edited ? " • edited" : ""}
-                          {onlineMap[message.user_id] ? " • online" : ""}
+                      
+                      {/* Name & Time */}
+                      <div className={`flex items-baseline gap-2 mb-1 px-1 ${mine ? "flex-row-reverse" : "flex-row"}`}>
+                        <span className="text-xs font-semibold text-foreground">
+                            {message.profiles?.full_name || message.profiles?.username}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(message.created_at), "h:mm a")}
+                          {message.edited && <span className="italic ml-1">(edited)</span>}
                         </span>
                       </div>
 
-                      <div className={`relative rounded-lg p-3 ${mine ? "bg-emerald-500 text-white" : "bg-white text-black"}`} style={mine ? { background: "#10b981" } : undefined}>
+                      {/* Bubble */}
+                      <div 
+                        className={`relative px-4 py-2 shadow-sm text-sm
+                            ${mine 
+                                ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm" 
+                                : "bg-white dark:bg-card border text-card-foreground rounded-2xl rounded-tl-sm"
+                            }
+                        `}
+                      >
+                        {/* Reply Context */}
                         {message.replied_message && (
-                          <div className={`mb-2 p-2 rounded ${mine ? "bg-white/10" : "bg-gray-50"} border-l-2 border-emerald-600`}>
-                            <p className="text-xs font-medium">Replying to {message.replied_message.profiles?.username ?? "someone"}</p>
-                            <p className="text-xs opacity-80 truncate">{message.replied_message.content}</p>
+                          <div className={`mb-2 p-2 rounded text-xs border-l-2 ${mine ? "bg-black/10 border-white/50" : "bg-muted border-primary"}`}>
+                            <p className="font-semibold opacity-90 mb-0.5">
+                                {message.replied_message.profiles?.username ?? "Unknown"}
+                            </p>
+                            <p className="opacity-75 truncate max-w-[200px]">
+                                {message.replied_message.content}
+                            </p>
                           </div>
                         )}
 
+                        {/* Text / Edit Mode */}
                         {editingMessageId === message.id ? (
-                          <div className="space-y-2">
-                            <Textarea value={editingText} onChange={(e) => setEditingText(e.target.value)} rows={3} className="text-black" />
+                          <div className="space-y-2 min-w-[200px]">
+                            <Textarea 
+                                value={editingText} 
+                                onChange={(e) => setEditingText(e.target.value)} 
+                                className="text-black bg-white min-h-[60px]" 
+                            />
                             <div className="flex gap-2 justify-end">
-                              <Button onClick={() => { setEditingMessageId(null); setEditingText(""); }} variant="ghost">Cancel</Button>
-                              <Button onClick={submitEdit}>Save</Button>
+                              <Button size="sm" variant="secondary" onClick={() => { setEditingMessageId(null); setEditingText(""); }}>Cancel</Button>
+                              <Button size="sm" onClick={submitEdit}>Save</Button>
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                          <div className="space-y-2">
+                             {/* Message Text */}
+                             {message.content && (
+                                <p className="whitespace-pre-wrap break-words leading-relaxed">
+                                    {message.content}
+                                </p>
+                             )}
 
+                             {/* Attachment */}
                             {message.attachment_url && (
-                              <div className="mt-2 rounded overflow-hidden border bg-background/30">
+                              <div className="mt-2 rounded-lg overflow-hidden border bg-background/50 max-w-sm">
                                 {/\.(png|jpe?g|webp|gif)$/i.test(message.attachment_name || "") ? (
-                                  <img src={message.attachment_url!} alt={message.attachment_name} className="max-h-64 object-contain w-full cursor-pointer" onClick={() => openPreview(message.attachment_url!)} />
+                                  <img 
+                                    src={message.attachment_url!} 
+                                    alt="attachment" 
+                                    className="max-h-60 w-full object-cover cursor-zoom-in hover:opacity-95 transition" 
+                                    onClick={() => openPreview(message.attachment_url!)} 
+                                  />
                                 ) : (
-                                  <div className="flex items-center gap-2 p-2">
-                                    <Paperclip className="h-4 w-4" />
-                                    <div className="flex-1 truncate">{message.attachment_name}</div>
-                                    <a href={message.attachment_url!} download={message.attachment_name} target="_blank" rel="noreferrer noopener">
-                                      <Button size="sm" variant="ghost"><Download className="h-4 w-4" /></Button>
+                                  <div className="flex items-center gap-3 p-3">
+                                    <div className="bg-muted p-2 rounded">
+                                        <Paperclip className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="truncate text-xs font-medium">{message.attachment_name}</p>
+                                    </div>
+                                    <a href={message.attachment_url!} download target="_blank" rel="noreferrer">
+                                      <Button size="icon" variant="ghost" className="h-8 w-8"><Download className="h-4 w-4" /></Button>
                                     </a>
                                   </div>
                                 )}
                               </div>
                             )}
-
-                            <div className="mt-2 flex gap-2 items-center">
-                              {(message.reactions || []).map((r: { emoji: string; user_ids: string[] }) => (
-                                <button
-                                  key={r.emoji}
-                                  className={`px-2 py-1 rounded-full text-sm border ${
-                                    r.user_ids?.includes(userId)
-                                    ? "bg-black/10 text-black"
-                                    : "bg-transparent text-black"
-                                  } flex items-center gap-1`}
-                                  onClick={() => toggleReaction(message.id, r.emoji)}
-                                  title={`${r.user_ids?.length || 0} reactions`}
-                                >
-                                  <span className="mr-0.5">{r.emoji}</span>
-                                  <span className="text-xs text-black">{r.user_ids?.length || 0}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-
-                        {/* inline hover area (emoji + menu) */}
-                        <div className={`absolute top-1 ${mine ? "-left-11" : "-right-11"} transition-opacity ${hoveredMessageId === message.id ? "opacity-100" : "opacity-0"} z-50`}>
-                          <div className="flex flex-col items-center gap-1">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 rounded-full hover:bg-muted"
-                                  title="More"
-                                >
-                                  <MoreHorizontal className="h-4 w-4 text-black" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-56 p-2">
-                                <PopupCard>
-                                  <PopupContent>
-                                    <div className="space-y-1">
-                                      {message.user_id === userId && (
-                                        <>
-                                          <button className="w-full text-left px-2 py-2 hover:bg-muted rounded flex items-center gap-2" onClick={() => startEdit(message)}>
-                                            <Edit2 className="h-4 w-4" /> Edit
-                                          </button>
-                                          <button className="w-full text-left px-2 py-2 hover:bg-muted rounded flex items-center gap-2" onClick={() => deleteMessage(message)}>
-                                            <Trash2 className="h-4 w-4" /> Delete
-                                          </button>
-                                          <button
-                                            className="w-full text-left px-2 py-2 hover:bg-muted rounded flex items-center gap-2"
-                                            onClick={() => toast(`Seen by: ${seenByNames(message.seen_by)}`)}
-                                          >
-                                            <Eye className="h-4 w-4" /> Seen by
-                                          </button>
-                                        </>
-                                      )}
-                                    
-
-                                      <div className="border-t my-2" />
-
-                                      <div className="text-sm mb-2">React</div>
-                                      <div className="flex gap-2 flex-wrap mb-2">
-                                        {EMOJIS.map((emoji) => (
-                                          <button key={emoji} className="px-2 py-1 rounded" onClick={() => toggleReaction(message.id, emoji)}>{emoji}</button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </PopupContent>
-                                </PopupCard>
-                              </PopoverContent>
-                            </Popover>
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 mt-1 items-center">
-                        {!mine && (
-                          <Button size="sm" variant="ghost" onClick={() => setReplyTo(message)}>
-                            <Reply className="h-3 w-3 mr-1" /> Reply
-                          </Button>
                         )}
                       </div>
+
+                      {/* Reactions - Placed slightly overlapping the bubble bottom */}
+                      {(message.reactions || []).length > 0 && (
+                        <div className={`flex flex-wrap gap-1 mt-1 ${mine ? "justify-end" : "justify-start"}`}>
+                           {(message.reactions || []).map((r: any) => (
+                            <button
+                                key={r.emoji}
+                                onClick={() => toggleReaction(message.id, r.emoji)}
+                                className={`
+                                    flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border shadow-sm transition-all hover:scale-105
+                                    ${r.user_ids?.includes(userId) ? "bg-blue-100 border-blue-200 text-blue-700" : "bg-white border-gray-100 text-gray-600"}
+                                `}
+                            >
+                                <span>{r.emoji}</span>
+                                <span>{r.user_ids?.length}</span>
+                            </button>
+                           ))}
+                        </div>
+                      )}
+
+                      {/* --- HOVER ACTION MENU --- */}
+                      <div 
+                        className={`
+                            absolute top-2 transition-all duration-200 z-10
+                            ${hoveredMessageId === message.id ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}
+                            ${mine ? "-left-10" : "-right-10"}
+                        `}
+                      >
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full shadow-md bg-background border">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-1" side={mine ? "left" : "right"}>
+                                {message.user_id === userId && (
+                                    <>
+                                        <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Actions</div>
+                                        <button onClick={() => startEdit(message)} className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-muted rounded-sm text-left">
+                                            <Edit2 className="h-3.5 w-3.5" /> Edit Message
+                                        </button>
+                                        <button onClick={() => deleteMessage(message)} className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-red-50 text-red-600 rounded-sm text-left">
+                                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                                        </button>
+                                        <div className="h-px bg-border my-1" />
+                                    </>
+                                )}
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">React</div>
+                                <div className="grid grid-cols-4 gap-1 p-1">
+                                    {EMOJIS.slice(0, 8).map((emoji) => (
+                                        <button key={emoji} onClick={() => toggleReaction(message.id, emoji)} className="text-lg hover:bg-muted rounded p-1">
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+
+                        {!mine && (
+                            <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-md bg-background border mt-2" onClick={() => setReplyTo(message)} title="Reply">
+                                <Reply className="h-4 w-4" />
+                            </Button>
+                        )}
+                      </div>
+
                     </div>
                   </div>
                 );
@@ -750,197 +784,140 @@ const GroupChat: React.FC<{ userId: string }> = ({ userId }) => {
             </div>
           ))}
           <div ref={messagesEndRef} />
-        </CardContent>
+      </div>
 
-        {/* typing indicator */}
-        <div className="px-4">
-          <div className="text-xs text-muted-foreground mb-2">
-            {Object.keys(typingUsersMap)
-              .filter((uid) => uid !== userId && Date.now() - (typingUsersMap[uid] || 0) < 6000).length > 0 ? (
-              <span>
-                {Object.keys(typingUsersMap)
-                  .filter((uid) => uid !== userId && Date.now() - (typingUsersMap[uid] || 0) < 6000)
-                  .map((uid) => {
-                    const u = users.find((x) => x.id === uid);
-                    return u ? (u.full_name || u.username) : uid;
-                  })
-                  .slice(0, 3)
-                  .join(", ")}{" "}
-                typing...
-              </span>
-            ) : (
-              <span className="opacity-60">no one typing</span>
+      {/* --- COMPOSER SECTION --- */}
+      <div className="p-4 bg-background border-t">
+        <div className="relative border rounded-xl shadow-sm bg-background transition-all focus-within:ring-1 focus-within:ring-ring focus-within:border-primary">
+            
+            {/* Context Previews (Reply / Attachment) - Positioned inside top */}
+            {(replyTo || attachment) && (
+                <div className="flex gap-2 p-2 border-b bg-muted/30 rounded-t-xl">
+                    {replyTo && (
+                        <div className="flex-1 flex items-center gap-2 text-xs bg-background border rounded px-2 py-1.5">
+                            <Reply className="h-3 w-3 text-primary" />
+                            <div className="flex-1 min-w-0">
+                                <span className="font-bold mr-1">{replyTo.profiles?.username}:</span>
+                                <span className="text-muted-foreground truncate">{replyTo.content}</span>
+                            </div>
+                            <button onClick={() => setReplyTo(null)} className="hover:text-red-500"><X className="h-3 w-3"/></button>
+                        </div>
+                    )}
+                    {attachment && (
+                         <div className="flex-1 flex items-center gap-2 text-xs bg-background border rounded px-2 py-1.5">
+                            <Paperclip className="h-3 w-3 text-primary" />
+                            <span className="flex-1 truncate text-muted-foreground">{attachment.name}</span>
+                            <button onClick={() => { setAttachment(null); setFileInputKey(Date.now()); }} className="hover:text-red-500"><X className="h-3 w-3"/></button>
+                        </div>
+                    )}
+                </div>
             )}
-          </div>
-        </div>
 
-        {/* composer */}
-        <div className="border-t p-4 space-y-2 bg-white">
-          {replyTo && (
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-              <Reply className="h-4 w-4" />
-              <div className="flex-1">
-                <p className="text-xs font-medium">Replying to {replyTo.profiles?.username}</p>
-                <p className="text-xs text-muted-foreground truncate">{replyTo.content}</p>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setReplyTo(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {attachment && (
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-              <Paperclip className="h-4 w-4" />
-              <span className="text-xs flex-1 truncate">{attachment.name}</span>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setAttachment(null); setFileInputKey(Date.now()); }}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          <div className="flex gap-2 items-end">
-            <input
-              key={fileInputKey}
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  setAttachment(f);
-                  toast.success("File attached");
-                }
-              }}
-            />
-            <Button size="icon" variant="outline" onClick={() => (fileInputRef.current as HTMLInputElement)?.click()}><Paperclip className="h-4 w-4" /></Button>
-
-            {/* emoji and gif buttons left of textarea */}
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <button
-                  ref={emojiBtnRef}
-                  onClick={() => {
-                    if (showEmojiPopup) closeEmojiPortal();
-                    else openEmojiPortal();
-                  }}
-                  className="p-2 rounded-full bg-white shadow-sm hover:scale-105 transition"
-                >
-                  <span style={{ fontSize: 18 }}>🤠</span>
-                </button>
-
-                {/* Emoji portal - positioned near the button */}
-                {showEmojiPopup && emojiPortalPos &&
-                  createPortal(
-                    <div
-                      ref={emojiPortalRef}
-                      className="fixed bg-white p-3 rounded-lg shadow-lg z-[999] grid grid-cols-6 gap-2 border border-gray-100"
-                      style={{ left: emojiPortalPos.left, top: emojiPortalPos.top, maxWidth: 360 }}
-                    >
-                      {EMOJIS.concat(["😄", "😉", "😅", "🤩", "✨", "💫"]).map((e) => (
-                        <button
-                          key={e}
-                          className="p-1 text-lg hover:bg-gray-100 rounded-md transition"
-                          onClick={() => {
-                            setNewMessage((s) => (s ? `${s} ${e}` : e));
-                            closeEmojiPortal();
-                            textareaRef.current?.focus();
-                          }}
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>,
-                    document.body
-                  )}
-
-              </div>
-
-              <div className="relative">
-                <button onClick={() => { setShowGifPopup((s) => !s); setGifResults([]); setGifQuery(""); }} className="p-2 rounded-full bg-white shadow-sm" title="GIF">
-                  🎞️
-                </button>
-
-                {showGifPopup && (
-                  <div
-                    ref={gifPopupRef}
-                    className="absolute bottom-12 left-0 bg-white rounded-md shadow p-3 w-96 z-50"
-                  >
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        className="flex-1 border rounded px-2 py-1"
-                        placeholder="Search GIFs"
-                        value={gifQuery}
-                        onChange={(e) => setGifQuery(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            searchGifs(gifQuery);
-                          }
+            <div className="flex items-end gap-2 p-2">
+                {/* Left Actions */}
+                <div className="flex gap-1 pb-1">
+                    <input
+                        key={fileInputKey}
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) {
+                                setAttachment(f);
+                                toast.success("File attached");
+                            }
                         }}
-                      />
-                      <Button onClick={() => searchGifs(gifQuery)}>Search</Button>
-                    </div>
-
-                    <div className="h-48 overflow-auto">
-                      {gifLoading && <div className="text-xs text-muted-foreground">Loading...</div>}
-                      {gifError && <div className="text-xs text-red-500">{gifError}</div>}
-
-                      <div className="grid grid-cols-4 gap-2 mt-2">
-                        {gifResults.map((g) => (
-                          <img key={g.id} src={g.url} className="h-20 w-full object-cover rounded cursor-pointer" onClick={() => sendGif(g.url)} />
-                        ))}
-                        {!gifLoading && gifResults.length === 0 && !gifError && (
-                          <div className="col-span-4 text-xs text-muted-foreground">Type and press Enter to search GIFs (Tenor key required).</div>
+                    />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full" onClick={() => (fileInputRef.current as HTMLInputElement)?.click()}>
+                        <Paperclip className="h-4 w-4" />
+                    </Button>
+                    
+                    {/* Emoji Button & Popover */}
+                    <div className="relative">
+                        <Button 
+                            ref={emojiBtnRef}
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full"
+                            onClick={() => showEmojiPopup ? closeEmojiPortal() : openEmojiPortal()}
+                        >
+                            <span className="text-lg leading-none">☺</span>
+                        </Button>
+                        
+                        {showEmojiPopup && emojiPortalPos && createPortal(
+                            <div
+                                ref={emojiPortalRef}
+                                className="fixed bg-popover text-popover-foreground p-2 rounded-lg shadow-xl z-[9999] border grid grid-cols-6 gap-1 w-64 animate-in fade-in zoom-in-95 duration-200"
+                                style={{ left: emojiPortalPos.left, top: emojiPortalPos.top - 200 }} // Adjust top to show above
+                            >
+                                {EMOJIS.concat(["😄", "😉", "😅", "🤩", "✨", "💫"]).map((e) => (
+                                    <button key={e} className="p-1.5 hover:bg-muted rounded text-xl" onClick={() => {
+                                        setNewMessage((s) => (s ? `${s} ${e}` : e));
+                                        closeEmojiPortal();
+                                        textareaRef.current?.focus();
+                                    }}>{e}</button>
+                                ))}
+                            </div>, document.body
                         )}
-                      </div>
                     </div>
 
-                    <div className="flex justify-end mt-2"><Button variant="ghost" onClick={() => setShowGifPopup(false)}>Close</Button></div>
-                  </div>
-                )}
-              </div>
-            </div>
+                    {/* GIF Button */}
+                    <div className="relative">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full" onClick={() => { setShowGifPopup(!showGifPopup); setGifResults([]); setGifQuery(""); }}>
+                            <span className="text-[10px] font-bold border border-current rounded px-0.5">GIF</span>
+                        </Button>
 
-            <div className="flex-1 relative">
-              <Textarea
-                ref={textareaRef}
-                value={newMessage}
-                onChange={(e) => onMessageChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
-                }}
-                placeholder="Type a message... (Shift+Enter for newline)"
-                className="min-h-[48px] max-h-[160px] resize-none"
-                rows={1}
-              />
-            </div>
+                        {showGifPopup && (
+                            <div ref={gifPopupRef} className="absolute bottom-10 left-0 w-80 bg-popover border shadow-xl rounded-lg p-3 z-50">
+                                <div className="flex gap-2 mb-2">
+                                    <input className="flex-1 bg-muted rounded px-2 py-1 text-sm outline-none" placeholder="Search Tenor..." value={gifQuery} onChange={(e) => setGifQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchGifs(gifQuery)} />
+                                </div>
+                                <div className="h-48 overflow-y-auto grid grid-cols-3 gap-2">
+                                    {gifLoading && <p className="text-xs text-muted-foreground col-span-3 text-center py-4">Loading...</p>}
+                                    {gifResults.map((g) => (
+                                        <img key={g.id} src={g.url} className="h-16 w-full object-cover rounded cursor-pointer hover:opacity-80" onClick={() => sendGif(g.url)} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-            <div>
-              <Button onClick={handleSendMessage} className="gap-2 bg-black text-white">
-                <Send className="h-4 w-4" />
-                Send
-              </Button>
+                {/* Text Area */}
+                <Textarea
+                    ref={textareaRef}
+                    value={newMessage}
+                    onChange={(e) => onMessageChange(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                    placeholder="Type your message..."
+                    className="flex-1 min-h-[40px] max-h-[120px] bg-transparent border-0 focus-visible:ring-0 resize-none py-2 px-0 text-sm shadow-none"
+                    rows={1}
+                />
+
+                {/* Send Button */}
+                <Button 
+                    onClick={handleSendMessage} 
+                    size="icon" 
+                    className="h-8 w-8 mb-1 rounded-full shrink-0 transition-all hover:scale-105"
+                    disabled={!newMessage.trim() && !attachment}
+                >
+                    <Send className="h-4 w-4 ml-0.5" />
+                </Button>
             </div>
-          </div>
         </div>
-      </Card>
+      </div>
 
-      {/* preview modal */}
-      <Dialog open={!!openPreviewUrl} onOpenChange={(o) => { if (!o) setOpenPreviewUrl(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Preview</DialogTitle></DialogHeader>
-          <div className="w-full max-h-[70vh] overflow-auto">
-            {openPreviewUrl && <img src={openPreviewUrl} alt="preview" className="w-full object-contain" />}
-            <div className="mt-4 flex gap-2">
-              <a href={openPreviewUrl || ""} download target="_blank" rel="noreferrer"><Button><Download className="h-4 w-4" /> Download</Button></a>
-              <Button variant="ghost" onClick={() => setOpenPreviewUrl(null)}>Close</Button>
+      {/* --- PREVIEW DIALOG --- */}
+      <Dialog open={!!openPreviewUrl} onOpenChange={(o) => !o && setOpenPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-black/95 border-0 text-white">
+            <div className="relative flex items-center justify-center h-[80vh]">
+                {openPreviewUrl && <img src={openPreviewUrl} alt="preview" className="max-w-full max-h-full object-contain" />}
+                <button onClick={() => setOpenPreviewUrl(null)} className="absolute top-4 right-4 p-2 bg-black/50 rounded-full hover:bg-white/20"><X className="h-5 w-5 text-white" /></button>
             </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 };
-
 export default GroupChat;
