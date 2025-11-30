@@ -402,7 +402,8 @@ const BlogFeed = ({ userId }: BlogFeedProps) => {
                 <span className="hidden sm:inline">Create Post</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-xl sm:h-auto h-[100dvh] overflow-y-auto">
+            {/* UI FIX: Added max-h-[85vh] to ensure modal fits on screen and scrolls internally */}
+            <DialogContent className="max-w-xl w-full max-h-[85vh] overflow-y-auto sm:rounded-lg">
               <DialogHeader>
                 <DialogTitle>Create New Post</DialogTitle>
                 <DialogDescription>
