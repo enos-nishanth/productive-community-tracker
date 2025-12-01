@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, BookOpen, Trash2, Search, Image as ImageIcon, Video, Loader2, X } from "lucide-react";
+import { Plus, BookOpen, Trash2, Search, Image as ImageIcon, Video, Loader2, X, Calendar, Smile } from "lucide-react";
 import { format } from "date-fns";
 import { compressVideo } from "@/lib/compressVideo";
 
@@ -31,6 +31,10 @@ interface DailyLogsListProps {
 const DailyLogsList = ({ userId }: DailyLogsListProps) => {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // New state for viewing a specific log
+  const [selectedLog, setSelectedLog] = useState<DailyLog | null>(null);
+
   const [newLog, setNewLog] = useState({
     title: "",
     content: "",
@@ -348,7 +352,6 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
                         onClick={() => {
                             setFile(null);
                             setPreview(null);
-                            // Reset the input field value (important for re-selecting same file)
                             const fileInput = document.getElementById("log-file") as HTMLInputElement;
                             if (fileInput) fileInput.value = "";
                         }}
@@ -427,11 +430,20 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
               </CardHeader>
               <CardContent className="pt-4 flex-1 flex flex-col justify-between">
                 <div>
-                    <p className="text-sm text-foreground/80 line-clamp-3 mb-3">{log.content}</p>
+                    <p className="text-sm text-foreground/80 line-clamp-3 mb-1">{log.content}</p>
+                    
+                    {/* --- READ MORE BUTTON --- */}
+                    <Button 
+                        variant="link" 
+                        className="p-0 h-auto font-semibold text-primary mb-3" 
+                        onClick={() => setSelectedLog(log)}
+                    >
+                        Read more
+                    </Button>
 
                     {/* Media Preview (Smaller for card view) */}
                     {log.image_url && (
-                        <div className="mb-3 rounded-md overflow-hidden bg-muted">
+                        <div className="mb-3 rounded-md overflow-hidden bg-muted cursor-pointer" onClick={() => setSelectedLog(log)}>
                             {log.image_url.match(/\.(mp4|webm|ogg)$/i) ? (
                                 <video src={log.image_url} className="w-full h-24 object-cover" />
                             ) : (
@@ -455,6 +467,63 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
           ))
         )}
       </div>
+
+      {/* --- View Detail Dialog --- */}
+      <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            {selectedLog && (
+                <>
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold leading-tight mr-4">
+                            {selectedLog.title}
+                        </DialogTitle>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-2">
+                             <div className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                {format(new Date(selectedLog.created_at), "MMMM d, yyyy 'at' h:mm a")}
+                             </div>
+                             {selectedLog.mood && (
+                                 <div className="flex items-center gap-1">
+                                    <Smile className="h-4 w-4" />
+                                    <span>{selectedLog.mood}</span>
+                                 </div>
+                             )}
+                        </div>
+                    </DialogHeader>
+
+                    <div className="mt-4 space-y-6">
+                        {/* Media Display - Full Size */}
+                        {selectedLog.image_url && (
+                            <div className="rounded-xl overflow-hidden border bg-black/5">
+                                {selectedLog.image_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                                    <video src={selectedLog.image_url} controls className="w-full max-h-[500px] mx-auto object-contain" />
+                                ) : (
+                                    <img src={selectedLog.image_url} alt="Log Attachment" className="w-full max-h-[500px] mx-auto object-contain" />
+                                )}
+                            </div>
+                        )}
+
+                        {/* Full Content */}
+                        <div className="prose prose-sm sm:prose-base max-w-none text-foreground whitespace-pre-wrap leading-relaxed">
+                            {selectedLog.content}
+                        </div>
+
+                        {/* Tags */}
+                        {selectedLog.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-4 border-t">
+                                {selectedLog.tags.map((tag, index) => (
+                                    <Badge key={index} variant="secondary">
+                                        #{tag}
+                                    </Badge>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
