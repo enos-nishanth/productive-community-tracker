@@ -293,6 +293,8 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
 
   const latest = reports[0] || null;
   const chartConfig = { Points: { label: "Points", color: "hsl(var(--chart-1))" }, Tasks: { label: "Tasks", color: "hsl(var(--chart-2))" }, Logs: { label: "Logs", color: "hsl(var(--chart-3))" } } as const;
+  
+  // REVERSE reports for the chart so time goes Left -> Right
   const pointsSeries = useMemo(() => reports.slice().reverse().map(r => ({ week: r.week_start, Points: r.points_gained || 0 })), [reports]);
   const workSeries = useMemo(() => [{ name: "This Week", Tasks: latest?.tasks_completed_count || 0, Logs: latest?.logs_count || 0 }], [latest]);
 
@@ -330,8 +332,7 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
             <>
               {/* Metric Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                
-                <div className="flex flex-col items-start border-r pr-2">
+                <div className="flex flex-col items-start border-r pr-2 last:border-r-0">
                     <div className="p-1 bg-yellow-500/10 rounded-full text-yellow-600 mb-1">
                         <Trophy className="h-4 w-4" />
                     </div>
@@ -339,7 +340,7 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
                     <div className="text-xs text-muted-foreground">Points</div>
                 </div>
                 
-                <div className="flex flex-col items-start border-r pr-2">
+                <div className="flex flex-col items-start border-r pr-2 last:border-r-0">
                     <div className="p-1 bg-primary/10 rounded-full text-primary mb-1">
                         <Target className="h-4 w-4" />
                     </div>
@@ -347,7 +348,7 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
                     <div className="text-xs text-muted-foreground">Tasks</div>
                 </div>
                 
-                <div className="flex flex-col items-start border-r pr-2">
+                <div className="flex flex-col items-start border-r pr-2 last:border-r-0">
                     <div className="p-1 bg-indigo-500/10 rounded-full text-indigo-600 mb-1">
                         <ListChecks className="h-4 w-4" />
                     </div>
@@ -362,30 +363,49 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
                     <div className="text-xl font-bold">{latest.achievements?.length || 0}</div>
                     <div className="text-xs text-muted-foreground">Highlights</div>
                 </div>
-
               </div>
               
-              {/* Condensed Summary */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium border-b pb-2">
+              {/* Detailed Content Section */}
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center gap-2 text-sm font-medium pb-2">
                     <CalendarDays className="h-4 w-4 text-muted-foreground" />
                     Week starting <Badge variant="outline">{latest.week_start}</Badge>
                 </div>
                 
+                {/* Summary (Added) */}
+                {latest.summary && (
+                    <div>
+                        <div className="font-semibold text-sm">Summary</div>
+                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{latest.summary}</p>
+                    </div>
+                )}
+
+                {/* Achievements (Full List) */}
                 {(latest.achievements?.length || 0) > 0 && (
                     <div>
                         <div className="font-semibold text-sm">Achievements</div>
-                        <ul className="list-disc ml-5 text-xs text-muted-foreground mt-1">
-                            {latest.achievements?.slice(0, 2).map((a, i) => (<li key={i}>{a}</li>))}
+                        <ul className="list-disc ml-5 text-sm text-muted-foreground mt-1">
+                            {latest.achievements?.map((a, i) => (<li key={i}>{a}</li>))}
                         </ul>
                     </div>
                 )}
                 
+                {/* Improvements (Added) */}
+                {(latest.improvements?.length || 0) > 0 && (
+                    <div>
+                        <div className="font-semibold text-sm">Improvements</div>
+                        <ul className="list-disc ml-5 text-sm text-muted-foreground mt-1">
+                            {latest.improvements?.map((a, i) => (<li key={i}>{a}</li>))}
+                        </ul>
+                    </div>
+                )}
+
+                {/* Goals (Full List) */}
                 {(latest.goals_next_week?.length || 0) > 0 && (
                     <div>
                         <div className="font-semibold text-sm">Next Goals</div>
-                        <ul className="list-disc ml-5 text-xs text-muted-foreground mt-1">
-                            {latest.goals_next_week?.slice(0, 2).map((a, i) => (<li key={i}>{a}</li>))}
+                        <ul className="list-disc ml-5 text-sm text-muted-foreground mt-1">
+                            {latest.goals_next_week?.map((a, i) => (<li key={i}>{a}</li>))}
                         </ul>
                     </div>
                 )}
@@ -407,7 +427,15 @@ export const WeeklyReportEmbedded = ({ userId, isAdmin }: { userId: string; isAd
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="week" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
-                <Line type="monotone" dataKey="Points" stroke="var(--color-Points)" strokeWidth={2} dot={false} />
+                {/* FIX: Enable dots so single data points are visible */}
+                <Line 
+                    type="monotone" 
+                    dataKey="Points" 
+                    stroke="var(--color-Points)" 
+                    strokeWidth={2} 
+                    dot={{ r: 4, fill: "var(--color-Points)" }}
+                    activeDot={{ r: 6 }}
+                />
               </LineChart>
             </ChartContainer>
           </CardContent>
