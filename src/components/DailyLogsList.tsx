@@ -155,13 +155,16 @@ const DailyLogsList = ({ userId }: DailyLogsListProps) => {
       }
     }
 
-    // 3️⃣ Update user's post count in `profiles`
-    const { error: countError } = await supabase.rpc("increment_post_count", {
+    // inside handleCreateLog...
+
+    // 3️⃣ Update user's streak and post count in one go
+    const { error: streakError } = await supabase.rpc("handle_daily_streak", {
       user_id_input: userId,
     });
 
-    if (countError) {
-      console.error(countError);
+    if (streakError) {
+      console.error("Error updating streak:", streakError.message);
+      // Optional: toast.error("Could not update your streak");
     }
 
     toast.success("Daily log created!");
